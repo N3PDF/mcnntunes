@@ -15,8 +15,8 @@ SpaceShower:QEDshowerByL = off
 LesHouches:setLeptonMass = 0
 LesHouches:setQuarkMass = 0
 
-BeamRemnants:primordialKThard = {intrinsicKT}
-SpaceShower:pT0Ref = {pT0isr}
-MultipartonInteractions:pT0Ref = {mpipt0}
-MultipartonInteractions:alphaSvalue = {mpias}
-ColourReconnection:range = {crr}
+BeamRemnants:primordialKThard = {{ intrinsicKT }}
+SpaceShower:pT0Ref = {{ pT0isr }}
+MultipartonInteractions:pT0Ref = {{ mpipt0 }}
+MultipartonInteractions:alphaSvalue = {{ mpias }}
+ColourReconnection:range = {{ crr }}
