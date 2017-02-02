@@ -1,0 +1,5 @@
+# Example of runcard for MCNNTUNE
+
+input:
+  folder : theory_input
+  pattern: '/ATLAS_2014_I1300647/d01-x01-y01'

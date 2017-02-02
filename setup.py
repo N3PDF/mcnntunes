@@ -12,13 +12,13 @@ setup(name= "mcnn",
       author_email = "stefano.carrazza@cern.ch",
       long_description = long_desc,
       entry_points = {'console_scripts':
-                    ['mcnntemplate = scripts.mcnntemplate:main']},
+                    ['mcnntemplate = scripts.mcnntemplate:main',
+                     'mcnntune = scripts.mcnntune:main' ]},
       package_dir = {'': 'src'},
       packages = find_packages('src'),
       package_data = {
        },
       install_requires=[
-          'os', 'argparse', 'yaml', 'itertools', 'jinja2'
       ],
       zip_safe = False,
       classifiers=[
