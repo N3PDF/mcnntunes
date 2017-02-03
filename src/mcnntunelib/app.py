@@ -48,7 +48,8 @@ class App(object):
         for i in range(100):
             plt.plot(data.unscale_y(nn.predict(data.x_scaled)[i,:])/data.y[0,:], color='c')
         plt.plot(data.unscale_y(nn.predict(data.x_scaled)[0, :]) / data.y[0, :], 'o-')
-        plt.show()
+        plt.show(block=True)
+	plt.savefig("test.png")
 
     def argparser(self):
         """prepare the argument parser"""
