@@ -1,5 +1,32 @@
 # Example of runcard for MCNNTUNE
 
+#############################
 input:
-  folder : theory_input
-  pattern: '/ATLAS_2014_I1300647/d01-x01-y01'
+  folders:
+    - theory_input
+  patterns:
+    - '/ATLAS_2016_I1424838/d03-x01-y01'
+  unpatterns:
+    - 'None'
+  expfiles:
+    - 'data/ATLAS_2016_I1424838.yoda'
+  weight_bins: off
+
+#############################
+model:
+  scan: off
+
+  scan_setup:
+    nb_epoch: [1000, 2000, 5000]
+    batch_size: [50, 100, 200]
+    loss: ['mse']
+
+  noscan_setup:
+    optimizer: 'rmsprop'
+    loss: 'mse'
+    nb_epoch: 10000
+    batch_size: 50
+
+##############################
+minimizer:
+  bounds: on

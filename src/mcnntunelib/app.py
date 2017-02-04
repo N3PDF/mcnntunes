@@ -5,11 +5,13 @@ Generates custom runcards for tunes variations
 __author__ = "Stefano Carrazza & Simone Alioli"
 __version__= "1.0.0"
 
-import argparse
+import argparse, shutil, filecmp, logging
 from runcardio import Config
 from yodaio import Data
 from nnmodel import NNModel
-from tools import make_dir
+from minimizer import CMAES
+from tools import make_dir, show, info, success, error
+import numpy as np
 
 
 class App(object):
@@ -17,39 +19,71 @@ class App(object):
     def __init__(self):
         """reads the runcard and parse cmd arguments"""
         self.args = self.argparser().parse_args()
-        with open(self.args.runcard,'rb') as file:
-            self.config = Config.from_yaml(file)
         make_dir(self.args.output)
+
+        logging.basicConfig(format='%(message)s', filename='%s/output.log' % self.args.output,
+                            filemode='w', level=logging.INFO)
+
+        self.splash()
+
+        with open(self.args.runcard, 'rb') as file:
+            self.config = Config.from_yaml(file)
+        if not self.args.load_from:
+            shutil.copy(self.args.runcard, '%s/runcard.yml' % self.args.output)
+        else:
+            if not filecmp.cmp(self.args.runcard, '%s/runcard.yml' % self.args.output):
+                error('Stored runcard has changed')
 
     def run(self):
         """main loop"""
+        nn = NNModel()
 
-        # open yoda files
-        data = Data(self.config.yodafiles, self.config.pattern)
-
-        # load data from yodas
-        data.scan_space()
-
-        # standardize
-        data.standardize()
-
-        # build fitting model
-        nn = NNModel(data.x_scaled, data.y_scaled)
-
-        if self.args.load_model is not None:
-            nn.load(self.args.load_model)
+        info('\n [======= MC data =======]')
+        if self.args.load_from is not None:
+            runs = Data.load('%s/runs.p' % self.args.load_from)
+            nn.load('%s/model.h5' % self.args.load_from)
         else:
-            nn.fit()
-            # save model to disk
-            nn.save(self.args.output)
+            # find MC run files
+            self.config.discover_yodas()
 
-        import matplotlib.pyplot as plt
-        plt.figure()
-        for i in range(100):
-            plt.plot(data.unscale_y(nn.predict(data.x_scaled)[i,:])/data.y[0,:], color='c')
-        plt.plot(data.unscale_y(nn.predict(data.x_scaled)[0, :]) / data.y[0, :], 'o-')
-        plt.show(block=True)
-	plt.savefig("test.png")
+            # open yoda files
+            runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns)
+
+            # saving data to file
+            runs.save('%s/runs.p' % self.args.output)
+
+            info('\n [======= Training NN model =======]')
+            if not self.config.scan:
+                nn.fit(runs.x_scaled, runs.y_scaled, self.config.noscan_setup)
+
+            # save model to disk
+            nn.save('%s/model.h5' % self.args.output)
+
+        info('\n [======= Experimental data =======]')
+        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
+                       self.config.unpatterns, expData=True)
+
+        # check dims consistency
+        if runs.y.shape[1] != expdata.y.shape[1]:
+            error('Output dimension mismatch between MC and Experimental data')
+
+        info('\n [======= Minimizing chi2 =======]')
+        m = CMAES(nn, expdata, runs, self.config.bounds, self.args.output)
+        result = m.minimize()
+
+        info('\n [======= Result Summary =======]')
+        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
+
+        best_x = result[0]*runs.x_std+runs.x_mean
+        best_rel = np.abs(result[6]/result[0])
+        best_std = best_x*best_rel
+
+        for i, p in enumerate(runs.params):
+            show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
+
+        info('\n [======= Generating report =======]')
+
+        success('\n [======= Completed see %s/index.html =======]\n' % self.args.output)
 
     def argparser(self):
         """prepare the argument parser"""
@@ -59,8 +93,20 @@ class App(object):
         )
         parser.add_argument('runcard', help='the runcard file.')
         parser.add_argument('--output', '-o', help='the output folder', default='output')
-        parser.add_argument('--load-model', '-l', help='load model from file')
+        parser.add_argument('--load-from', '-l', help='load model from folder')
         return parser
+
+    def splash(self):
+
+        show('  __  __  ____ _   _ _   _ _____                 ')
+        show(' |  \\/  |/ ___| \\ | | \\ | |_   _|   _ _ __   ___ ')
+        show(' | |\\/| | |   |  \\| |  \\| | | || | | | \'_ \\ / _ \\')
+        show(' | |  | | |___| |\\  | |\\  | | || |_| | | | |  __/')
+        show(' |_|  |_|\\____|_| \\_|_| \\_| |_| \\__,_|_| |_|\\___|')
+        show('')
+
+        show('  __version__: %s' % __version__)
+        show('  __authors__: %s' % __author__)
 
 
 def main():
