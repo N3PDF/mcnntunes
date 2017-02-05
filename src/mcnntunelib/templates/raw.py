@@ -63,7 +63,7 @@ r"""
 	    <a class="menu-item selected" href="">
 	      Raw output
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="config.html">
 	      Configuration
 	    </a>
 	  </nav>

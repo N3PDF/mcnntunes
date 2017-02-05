@@ -91,6 +91,9 @@ class App(object):
         with open('%s/output.log' % self.args.output, 'rb') as f:
             display_output['raw_output'] = f.read()
 
+        with open('%s/runcard.yml' % self.args.output, 'rb') as f:
+            display_output['configuration'] = f.read()
+
         rep = Report(self.args.output)
         rep.save(display_output)
 

@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-index = \
+config = \
 r"""
 <!DOCTYPE html>
 <html lang="en">
@@ -48,7 +48,7 @@ r"""
 	<div class="one-fourth column">
 
 	  <nav class="menu docs-menu">
-	    <a class="menu-item selected" href="index.html">
+	    <a class="menu-item" href="index.html">
 	      Summary
 	    </a>
 	    <a class="menu-item" href="">
@@ -63,38 +63,17 @@ r"""
 	    <a class="menu-item " href="raw.html">
 	      Raw output
 	    </a>
-	    <a class="menu-item " href="config.html">
+	    <a class="menu-item selected" href="">
 	      Configuration
 	    </a>
 	  </nav>
 
 	</div>
 	<div class="three-fourths column markdown-body">
-	  <h1 class="page-title">Tune summary</h1>
+	  <h1 class="page-title">Raw output</h1>
 	  <div class="markdown-body">
 
-	    <p>Find in the table the best proposed parameters for the current data:</p>
-
-	    <table summary="This is a chart of invoices for 2011.">
-	      <thead>
-		<tr>
-		  <th scope="col">#</th>
-		  <th scope="col">Parameter</th>
-		  <th scope="col">Value</th>
-		  <th scope="col">Error</th>
-		</tr>
-	      </thead>
-	      <tbody>
-	    {% for param in results %}
-		<tr>
-		  <td>{{loop.index}}</td>
-		  <td>{{param.name}}</td>
-		  <td>{{param.x}}</td>
-		  <td>{{param.std}}</td>
-		</tr>
-		{% endfor %}
-	      </tbody>
-	    </table>
+      <pre>{{configuration}}</pre>
 
 	  </div>
 	</div>
