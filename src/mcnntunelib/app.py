@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Generates custom runcards for tunes variations
+Performs MC tunes using Neural Networks
+@authors: Stefano Carrazza & Simone Alioli
 """
-__author__ = "Stefano Carrazza & Simone Alioli"
-__version__= "1.0.0"
 
 import argparse, shutil, filecmp, logging
 from runcardio import Config
 from yodaio import Data
 from nnmodel import NNModel
 from minimizer import CMAES
-from tools import make_dir, show, info, success, error
+from report import Report
+from tools import make_dir, show, info, success, \
+    error, __version__, __author__
 import numpy as np
 
 
@@ -78,12 +79,22 @@ class App(object):
         best_rel = np.abs(result[6]/result[0])
         best_std = best_x*best_rel
 
+        display_output = { 'results' : [], 'version': __version__}
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
+            display_output['results'].append({'name':p,
+                                              'x': str('%e') % best_x[i],
+                                              'std': str('%e') % best_std[i]})
 
         info('\n [======= Generating report =======]')
 
-        success('\n [======= Completed see %s/index.html =======]\n' % self.args.output)
+        with open('%s/output.log' % self.args.output, 'rb') as f:
+            display_output['raw_output'] = f.read()
+
+        rep = Report(self.args.output)
+        rep.save(display_output)
+
+        success('\n [======= Completed =======]\n')
 
     def argparser(self):
         """prepare the argument parser"""
