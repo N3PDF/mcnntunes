@@ -6,7 +6,7 @@ Performs MC tunes using Neural Networks
 
 import yoda, pickle
 import numpy as np
-from tools import error, show
+from tools import error, show, info
 
 
 class Data(object):
@@ -22,8 +22,11 @@ class Data(object):
             if len(r) == 0 and expData == False:
                 error('Empty histograms following pattern %s' % patterns)
             elif len(r) == 0:
-                show('Warning: empty histograms in %s for pattern %s' % (filename, patterns))
+                info('Empty histograms in %s for pattern %s' % (filename, patterns))
             yoda_histograms.append(r)
+
+        if expData:
+            yoda_histograms = [dict(pair for d in yoda_histograms for pair in d.items())]
 
         entries = len(yoda_histograms)
         if entries == 0:
