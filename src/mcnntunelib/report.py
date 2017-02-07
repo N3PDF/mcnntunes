@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-import os
+import os, copy
 import matplotlib.pyplot as plt
 from tools import make_dir, show
 from mcnntunelib.templates.index import index
@@ -13,6 +13,7 @@ from mcnntunelib.templates.minimization import minimization
 from mcnntunelib.templates.model import model
 from mcnntunelib.templates.config import config
 from jinja2 import Template
+import numpy as np
 
 
 class Report(object):
@@ -35,12 +36,33 @@ class Report(object):
 
         show('\n- Generated report @ file://%s/%s/index.html' % (os.getcwd(), self.path))
 
-    def plot_minimize(self, minimizer):
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs):
         """"""
-        minimizer.plot()
+        minimizer.es.plot()
         plt.savefig('%s/plots/minimizer.svg' % self.path)
 
-    def plot_model(self, model):
+        # plot 1d profiles
+        for dim in range(runs.x_scaled.shape[1]):
+            d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), 30)
+            res = []
+            xx = []
+            for p in d:
+                a = np.array(best_x_scaled)
+                a[dim] = p
+                chi2 = minimizer.chi2(a)
+                res.append(chi2)
+                xx.append(runs.unscale_x(a)[dim])
+            plt.figure()
+            plt.plot(xx, res, label='parameter variation', linewidth=2)
+            plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
+            plt.legend(loc='best')
+            plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
+            plt.ylabel('$\chi^2$/dof')
+            plt.xlabel('parameter')
+            plt.grid()
+            plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
+
+    def plot_model(self, model, runs):
         """"""
         plt.figure()
         plt.title('Training loss function vs iteration')
@@ -51,3 +73,5 @@ class Report(object):
         plt.xlabel('iteration')
         plt.grid()
         plt.savefig('%s/plots/loss.svg' % self.path)
+
+

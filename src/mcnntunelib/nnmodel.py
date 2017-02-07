@@ -21,12 +21,16 @@ class NNModel(object):
         self.output_dim = 0
         self.model = None
 
-    def build_model(self, optimizer='rmsprop', loss='mse', init='glorot_uniform'):
+    def build_model(self, optimizer='rmsprop', loss='mse', architecture=None, actfunction=None, init='glorot_uniform'):
         """build neural network model"""
         model = Sequential()
-        model.add(Dense(output_dim=6, input_dim=self.input_dim, init=init, activation='tanh'))
-        model.add(Dense(output_dim=15, input_dim=6, init=init, activation='tanh'))
-        model.add(Dense(output_dim=self.output_dim, input_dim=15, init=init, activation='linear'))
+
+        nsizes = [self.input_dim] + [l for l in architecture] + [self.output_dim]
+        actfun = [actfunction for l in range(len(architecture))] + ['linear']
+
+        for l in range(len(nsizes)-1):
+            model.add(Dense(output_dim=nsizes[l+1], input_dim=nsizes[l], init=init, activation=actfun[l]))
+
         model.compile(loss=loss, optimizer=optimizer)
         return model
 
@@ -38,7 +42,8 @@ class NNModel(object):
 
         self.input_dim = x.shape[1]
         self.output_dim = y.shape[1]
-        self.model = self.build_model(setup['optimizer'], setup['loss'])
+        self.model = self.build_model(setup['optimizer'], setup['loss'],
+                                      setup['architecture'], setup['actfunction'])
         h = self.model.fit(x, y, nb_epoch=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
         show('\n- Final loss function: %f' % h.history['loss'][-1])
         self.loss = h.history['loss']

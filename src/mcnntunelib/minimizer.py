@@ -12,7 +12,7 @@ import cma
 
 class CMAES(object):
 
-    def __init__(self, model, truth, runs, useBounds=True, output='.'):
+    def __init__(self, model, truth, runs, useBounds = True, output='.'):
         """"""
         self.model = model
         self.truth = truth.y[0]

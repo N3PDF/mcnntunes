@@ -75,11 +75,21 @@ r"""
 
 	    <p>Final chi2/dof: {{chi2}} (dof={{dof}})</p>
 
-      <h2>CMAES logger</h2>
+	     <h2>CMAES logger</h2>
 
       <figure>
         <img src="plots/minimizer.svg" alt="cmaes logger">
       </figure>
+
+      <h2>Profiles</h2>
+
+      <div>
+      <figure>
+      {% for param in results %}
+        <img src="plots/chi2_{{loop.index-1}}.svg" alt="profile" style="width: 50%; float: left; margin: 0; text-align: center; padding: 0;">
+      {% endfor %}
+      </figure>
+      </div>
 
 	  </div>
 	</div>

@@ -10,7 +10,7 @@ input:
     - 'None'
   expfiles:
     - 'data/ATLAS_2016_I1424838.yoda'
-  weight_bins: off
+  #weight_bins: off TODO
 
 #############################
 model:
@@ -20,12 +20,16 @@ model:
     nb_epoch: [1000, 2000, 5000]
     batch_size: [50, 100, 200]
     loss: ['mse']
+    architecture: [[6,15]]
+    actfunction: ['tanh','sigmoid','relu']
 
   noscan_setup:
     optimizer: 'rmsprop'
     loss: 'mse'
     nb_epoch: 10000
-    batch_size: 50
+    batch_size: 200
+    architecture: [6,15]
+    actfunction: 'tanh'
 
 ##############################
 minimizer:

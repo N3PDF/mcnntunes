@@ -51,10 +51,10 @@ r"""
 	    <a class="menu-item" href="index.html">
 	      Summary
 	    </a>
-	    <a class="menu-item" href="">
+	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="model.html">
 	      Model validation
 	    </a>
 	    <a class="menu-item " href="minimization.hml">
@@ -63,14 +63,14 @@ r"""
 	    <a class="menu-item " href="raw.html">
 	      Raw output
 	    </a>
-	    <a class="menu-item selected" href="">
+	    <a class="menu-item selected" href="config.html">
 	      Configuration
 	    </a>
 	  </nav>
 
 	</div>
 	<div class="three-fourths column markdown-body">
-	  <h1 class="page-title">Raw output</h1>
+	  <h1 class="page-title">Configuration</h1>
 	  <div class="markdown-body">
 
       <pre>{{configuration}}</pre>

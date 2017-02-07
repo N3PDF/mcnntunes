@@ -62,7 +62,7 @@ class App(object):
             # save model to disk
             nn.save('%s/model.h5' % self.args.output)
 
-        rep.plot_model(nn)
+            rep.plot_model(nn, runs)
 
         info('\n [======= Experimental data =======]')
         expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
@@ -76,14 +76,14 @@ class App(object):
         m = CMAES(nn, expdata, runs, self.config.bounds, self.args.output)
         result = m.minimize()
 
-        rep.plot_minimize(m.es)
-
-        info('\n [======= Result Summary =======]')
-        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
-
         best_x = result[0]*runs.x_std+runs.x_mean
         best_rel = np.abs(result[6]/result[0])
         best_std = best_x*best_rel
+
+        rep.plot_minimize(m, best_x, result[0], runs)
+
+        info('\n [======= Result Summary =======]')
+        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
 
         display_output = { 'results' : [], 'version': __version__,
                            'chi2': result[1], 'dof': len(expdata.y[0]),
