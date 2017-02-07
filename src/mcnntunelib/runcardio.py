@@ -16,12 +16,15 @@ class Config(object):
     def __init__(self, content):
         """load lhe files"""
         self.content = content
+        self.seed = self.get('input', 'seed')
         self.patterns = self.get('input', 'patterns')
         self.unpatterns = self.get('input', 'unpatterns')
         self.expfiles = self.get('input', 'expfiles')
         self.scan = self.get('model', 'scan')
         if not self.scan:
             self.noscan_setup = self.get('model', 'noscan_setup')
+        else:
+            self.scan_setup = self.get('model', 'scan_setup')
         self.bounds = self.get('minimizer','bounds')
 
     def discover_yodas(self):

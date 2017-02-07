@@ -35,6 +35,8 @@ class App(object):
             if not filecmp.cmp(self.args.runcard, '%s/runcard.yml' % self.args.output):
                 error('Stored runcard has changed')
 
+        np.random.seed(self.config.seed)
+
     def run(self):
         """main loop"""
         nn = NNModel()
@@ -57,7 +59,9 @@ class App(object):
 
             info('\n [======= Training NN model =======]')
             if not self.config.scan:
-                nn.fit(runs.x_scaled, runs.y_scaled, self.config.noscan_setup)
+                nn.fit_noscan(runs.x_scaled, runs.y_scaled, self.config.noscan_setup)
+            else:
+                nn.fit_scan(runs.x_scaled, runs.y_scaled, self.config.scan_setup, self.args.parallel)
 
             # save model to disk
             nn.save('%s/model.h5' % self.args.output)
@@ -87,7 +91,7 @@ class App(object):
 
         display_output = { 'results' : [], 'version': __version__,
                            'chi2': result[1], 'dof': len(expdata.y[0]),
-                           'loss': nn.loss[-1]}
+                           'loss': nn.loss[-1], 'scan': self.config.scan}
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
             display_output['results'].append({'name':p,
@@ -115,6 +119,8 @@ class App(object):
         parser.add_argument('runcard', help='the runcard file.')
         parser.add_argument('--output', '-o', help='the output folder', default='output')
         parser.add_argument('--load-from', '-l', help='load model from folder')
+        parser.add_argument('--parallel', dest='parallel', action='store_true',
+                            help='use multicore during grid search', default=False)
         return parser
 
     def splash(self):

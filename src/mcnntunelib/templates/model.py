@@ -75,12 +75,13 @@ r"""
 
 	    <p>Final loss function: {{loss}}</p>
 
+        {% if not scan %}
         <h2>Training loss</h2>
 
         <figure>
             <img src="plots/loss.svg" alt="model loss">
         </figure>
-
+        {% endif %}
 
 	  </div>
 	</div>

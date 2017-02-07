@@ -57,7 +57,7 @@ r"""
 	    <a class="menu-item " href="model.html">
 	      Model validation
 	    </a>
-	    <a class="menu-item " href="minimization.hml">
+	    <a class="menu-item " href="minimization.html">
 	      Minimization
 	    </a>
 	    <a class="menu-item " href="raw.html">

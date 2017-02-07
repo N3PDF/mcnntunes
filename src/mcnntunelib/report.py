@@ -64,14 +64,15 @@ class Report(object):
 
     def plot_model(self, model, runs):
         """"""
-        plt.figure()
-        plt.title('Training loss function vs iteration')
-        plt.plot(model.loss, label='Loss')
-        plt.legend(loc='best')
-        plt.yscale('log')
-        plt.ylabel('ERF')
-        plt.xlabel('iteration')
-        plt.grid()
-        plt.savefig('%s/plots/loss.svg' % self.path)
+        if not model.use_scan:
+            plt.figure()
+            plt.title('Training loss function vs iteration')
+            plt.plot(model.loss, label='Loss')
+            plt.legend(loc='best')
+            plt.yscale('log')
+            plt.ylabel('ERF')
+            plt.xlabel('iteration')
+            plt.grid()
+            plt.savefig('%s/plots/loss.svg' % self.path)
 
 
