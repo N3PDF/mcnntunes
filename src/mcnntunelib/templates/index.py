@@ -51,13 +51,13 @@ r"""
 	    <a class="menu-item selected" href="index.html">
 	      Summary
 	    </a>
-	    <a class="menu-item" href="">
+	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="model.html">
 	      Model validation
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="minimization.html">
 	      Minimization
 	    </a>
 	    <a class="menu-item " href="raw.html">
@@ -75,7 +75,7 @@ r"""
 
 	    <p>Find in the table the best proposed parameters for the current data:</p>
 
-	    <table summary="This is a chart of invoices for 2011.">
+	    <table>
 	      <thead>
 		<tr>
 		  <th scope="col">#</th>
@@ -93,6 +93,27 @@ r"""
 		  <td>{{param.std}}</td>
 		</tr>
 		{% endfor %}
+	      </tbody>
+	    </table>
+
+	    <h2>Estimators</h2>
+
+	    <table>
+	      <thead>
+		<tr>
+		  <th scope="col">Estimator name</th>
+		  <th scope="col">Estimator value</th>
+		</tr>
+	      </thead>
+	      <tbody>
+	      <tr>
+	        <td>Final chi2/dof</td>
+	        <td>{{chi2}}</td>
+	      </tr>
+	      <tr>
+	        <td>Final loss</td>
+	        <td>{{loss}}</td>
+	      </tr>
 	      </tbody>
 	    </table>
 

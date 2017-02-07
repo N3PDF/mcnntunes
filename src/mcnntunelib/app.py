@@ -39,6 +39,8 @@ class App(object):
         """main loop"""
         nn = NNModel()
 
+        rep = Report(self.args.output)
+
         info('\n [======= MC data =======]')
         if self.args.load_from is not None:
             runs = Data.load('%s/runs.p' % self.args.load_from)
@@ -60,6 +62,8 @@ class App(object):
             # save model to disk
             nn.save('%s/model.h5' % self.args.output)
 
+        rep.plot_model(nn)
+
         info('\n [======= Experimental data =======]')
         expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
                        self.config.unpatterns, expData=True)
@@ -72,6 +76,8 @@ class App(object):
         m = CMAES(nn, expdata, runs, self.config.bounds, self.args.output)
         result = m.minimize()
 
+        rep.plot_minimize(m.es)
+
         info('\n [======= Result Summary =======]')
         show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
 
@@ -79,7 +85,9 @@ class App(object):
         best_rel = np.abs(result[6]/result[0])
         best_std = best_x*best_rel
 
-        display_output = { 'results' : [], 'version': __version__}
+        display_output = { 'results' : [], 'version': __version__,
+                           'chi2': result[1], 'dof': len(expdata.y[0]),
+                           'loss': nn.loss[-1]}
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
             display_output['results'].append({'name':p,
@@ -94,7 +102,6 @@ class App(object):
         with open('%s/runcard.yml' % self.args.output, 'rb') as f:
             display_output['configuration'] = f.read()
 
-        rep = Report(self.args.output)
         rep.save(display_output)
 
         success('\n [======= Completed =======]\n')

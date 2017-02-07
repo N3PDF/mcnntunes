@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-config = \
+minimization = \
 r"""
 <!DOCTYPE html>
 <html lang="en">
@@ -48,32 +48,38 @@ r"""
 	<div class="one-fourth column">
 
 	  <nav class="menu docs-menu">
-	    <a class="menu-item" href="index.html">
+	    <a class="menu-item " href="index.html">
 	      Summary
 	    </a>
-	    <a class="menu-item" href="">
+	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="mode.html">
 	      Model validation
 	    </a>
-	    <a class="menu-item " href="minimization.hml">
+	    <a class="menu-item selected" href="minimization.html">
 	      Minimization
 	    </a>
 	    <a class="menu-item " href="raw.html">
 	      Raw output
 	    </a>
-	    <a class="menu-item selected" href="">
+	    <a class="menu-item " href="config.html">
 	      Configuration
 	    </a>
 	  </nav>
 
 	</div>
 	<div class="three-fourths column markdown-body">
-	  <h1 class="page-title">Raw output</h1>
+	  <h1 class="page-title">Minimization</h1>
 	  <div class="markdown-body">
 
-      <pre>{{configuration}}</pre>
+	    <p>Final chi2/dof: {{chi2}} (dof={{dof}})</p>
+
+      <h2>CMAES logger</h2>
+
+      <figure>
+        <img src="plots/minimizer.svg" alt="cmaes logger">
+      </figure>
 
 	  </div>
 	</div>

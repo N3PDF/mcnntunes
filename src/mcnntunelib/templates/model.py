@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-config = \
+model = \
 r"""
 <!DOCTYPE html>
 <html lang="en">
@@ -48,32 +48,39 @@ r"""
 	<div class="one-fourth column">
 
 	  <nav class="menu docs-menu">
-	    <a class="menu-item" href="index.html">
+	    <a class="menu-item " href="index.html">
 	      Summary
 	    </a>
-	    <a class="menu-item" href="">
+	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item selected" href="model.html">
 	      Model validation
 	    </a>
-	    <a class="menu-item " href="minimization.hml">
+	    <a class="menu-item " href="minimization.html">
 	      Minimization
 	    </a>
 	    <a class="menu-item " href="raw.html">
 	      Raw output
 	    </a>
-	    <a class="menu-item selected" href="">
+	    <a class="menu-item " href="config.html">
 	      Configuration
 	    </a>
 	  </nav>
 
 	</div>
 	<div class="three-fourths column markdown-body">
-	  <h1 class="page-title">Raw output</h1>
+	  <h1 class="page-title">Model validation</h1>
 	  <div class="markdown-body">
 
-      <pre>{{configuration}}</pre>
+	    <p>Final loss function: {{loss}}</p>
+
+        <h2>Training loss</h2>
+
+        <figure>
+            <img src="plots/loss.svg" alt="model loss">
+        </figure>
+
 
 	  </div>
 	</div>

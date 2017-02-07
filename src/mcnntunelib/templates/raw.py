@@ -51,16 +51,16 @@ r"""
 	    <a class="menu-item" href="index.html">
 	      Summary
 	    </a>
-	    <a class="menu-item" href="">
+	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="model.html">
 	      Model validation
 	    </a>
-	    <a class="menu-item " href="">
+	    <a class="menu-item " href="minimization.html">
 	      Minimization
 	    </a>
-	    <a class="menu-item selected" href="">
+	    <a class="menu-item selected" href="raw.html">
 	      Raw output
 	    </a>
 	    <a class="menu-item " href="config.html">

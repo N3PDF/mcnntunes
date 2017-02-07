@@ -4,6 +4,8 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 import cma
 
