@@ -15,20 +15,20 @@ input:
 
 #############################
 model:
-  scan: on
+  scan: off
 
   scan_setup:
-    nb_epoch: [10, 20]
-    batch_size: [50, 100, 200]
-    optimizer: ['rmsprop']
-    architecture: [[6,15]]
+    nb_epoch: [1000, 2000, 5000]
+    batch_size: [20, 50, 100, 200]
+    optimizer: ['rmsprop', 'adam', 'sgd']
+    architecture: [[6,15],[3,5],[3,3,3]]
     actfunction: ['tanh','sigmoid','relu']
     kfold: 3
 
   noscan_setup:
     optimizer: 'rmsprop'
     nb_epoch: 10000
-    batch_size: 200
+    batch_size: 20
     architecture: [6,15]
     actfunction: 'tanh'
 

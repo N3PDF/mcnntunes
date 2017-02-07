@@ -75,4 +75,27 @@ class Report(object):
             plt.grid()
             plt.savefig('%s/plots/loss.svg' % self.path)
 
+        # scatter plot
+        loss_runs = []
+        for r in range(runs.x_scaled.shape[0]):
+            loss_runs.append(model.model.evaluate(runs.x_scaled[r].reshape(1,5),
+                                        runs.y_scaled[r].reshape(1,12),
+                                        verbose=0))
+        plt.figure()
+        plt.plot(loss_runs)
+        plt.axhline(model.loss[-1], color='r', linewidth=2, label='average')
+        plt.legend(loc='best')
+        plt.xlabel('variations')
+        plt.ylabel('MSE')
+        plt.title('Loss function for final model')
+        plt.grid()
+        plt.savefig('%s/plots/model_loss.svg' % self.path)
 
+        plt.figure()
+        plt.hist(loss_runs, color='g')
+        plt.axvline(model.loss[-1], color='r', linewidth=2, label='average')
+        plt.xlabel('MSE')
+        plt.ylabel('#')
+        plt.title('Loss function distribution')
+        plt.grid()
+        plt.savefig('%s/plots/model_loss_hist.svg' % self.path)

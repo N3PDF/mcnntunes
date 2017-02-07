@@ -54,7 +54,7 @@ r"""
 	    <a class="menu-item" href="data.html">
 	      Data-model plots
 	    </a>
-	    <a class="menu-item " href="mode.html">
+	    <a class="menu-item " href="model.html">
 	      Model validation
 	    </a>
 	    <a class="menu-item selected" href="minimization.html">

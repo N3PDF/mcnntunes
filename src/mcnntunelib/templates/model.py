@@ -83,6 +83,12 @@ r"""
         </figure>
         {% endif %}
 
+        <h2>Model evaluation</h2>
+        <figure>
+            <img src="plots/model_loss.svg" alt="model loss">
+            <img src="plots/model_loss_hist.svg" alt="model loss">
+        </figure>
+
 	  </div>
 	</div>
       </div>

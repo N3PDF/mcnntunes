@@ -47,13 +47,13 @@ class NNModel(object):
         for key in setup.keys():
             show('  - %s : %s' % (key, setup.get(key)))
 
-        self.model = build_model([x.shape[1]], [y.shape[1]],
+        self.model = build_model(x.shape[1], y.shape[1],
                                  setup['optimizer'], 'mse',
                                  setup['architecture'], setup['actfunction'])
 
         h = self.model.fit(x, y, nb_epoch=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
-        show('\n- Final loss function: %f' % h.history['loss'][-1])
-        self.loss = h.history['loss']
+        self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
+        show('\n- Final loss function: %f' % self.loss[-1])
 
     def fit_scan(self, x, y, setup, parallel):
         """"""
@@ -90,7 +90,7 @@ class NNModel(object):
             show("%f (%f) %f %f with: %r" % (mean, stdev, mean2, mean / mean2, param))
 
         self.model = grid_result.best_estimator_.model
-        self.loss = [-grid_result.best_score_]
+        self.loss = [-grid_result.best_score_, self.model.evaluate(x,y,verbose=0)]
 
     def predict(self, x):
         """compute prediction"""

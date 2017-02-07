@@ -86,10 +86,9 @@ class Data(object):
             self.x_mean = np.mean(self.x, axis=0)
             self.x_std  = np.std(self.x, axis=0)
             self.x_scaled = (self.x - self.x_mean) / self.x_std
-
-        self.y_mean = np.mean(self.y, axis=0)
-        self.y_std  = np.std(self.y, axis=0)
-        self.y_scaled = (self.y - self.y_mean) / self.y_std
+            self.y_mean = np.mean(self.y, axis=0)
+            self.y_std = np.std(self.y, axis=0)
+            self.y_scaled = (self.y - self.y_mean) / self.y_std
 
         show('\n- Data standardized successfully')
 
