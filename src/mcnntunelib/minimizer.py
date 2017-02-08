@@ -24,7 +24,7 @@ class CMAES(object):
         center = 0
         sigma = 1
         if useBounds:
-            opts = {'bounds': [s0min, s0max], 'verb_filenameprefix': '%s/cma-' % output}
+            opts = {'bounds': [s0min, s0max], 'verb_filenameprefix': '%s/cma-' % output }
         else: opts = {}
 
         print('\n- Minimizer setup:')
@@ -37,7 +37,7 @@ class CMAES(object):
 
     def chi2(self, x):
         model = self.runs.unscale_y(self.model.predict(x.reshape(1,self.runs.x_scaled.shape[1])).reshape(len(self.truth)))
-        chi2 = np.mean(np.square((model-self.truth)/self.truth_error)) / len(self.truth)
+        chi2 = np.sum(np.square((model-self.truth)/self.truth_error)) / len(self.truth)
         return chi2
 
     def minimize(self):

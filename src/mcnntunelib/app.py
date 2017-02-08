@@ -100,6 +100,11 @@ class App(object):
 
         info('\n [======= Generating report =======]')
 
+        up = runs.unscale_y(nn.predict(result[0].reshape(1,result[0].shape[0])).reshape(expdata.y.shape[1]))
+        rep.plot_data(expdata, up)
+
+        display_output['data_hists'] = len(expdata.plotinfo)
+
         with open('%s/output.log' % self.args.output, 'rb') as f:
             display_output['raw_output'] = f.read()
 

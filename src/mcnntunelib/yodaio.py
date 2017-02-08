@@ -65,6 +65,7 @@ class Data(object):
         self.yerr = np.zeros(shape=(entries, output_size))
 
         # load data from files
+        self.plotinfo = []
         try:
             for i, file in enumerate(yoda_histograms):
                 index = 0
@@ -73,10 +74,20 @@ class Data(object):
                     if not expData:
                         for j, inparam in enumerate(input_param):
                             self.x[i, j] = h.annotation(inparam)
-                    for p in h.points:
+                    data_x = np.zeros(len(h.points))
+                    data_y = np.zeros(len(h.points))
+                    data_yerr = np.zeros(len(h.points))
+                    for t, p in enumerate(h.points):
                         self.y[i,index] = p.y
                         self.yerr[i,index] = p.yErrAvg
                         index += 1
+                        data_x[t] = p.x
+                        data_y[t] = p.y
+                        data_yerr[t] = p.yErrAvg
+                    self.plotinfo.append({'title': key.replace('/REF',''),
+                                          'x': data_x,
+                                          'y': data_y,
+                                          'yerr': data_yerr})
         except:
             error("Error: yoda files are not consistent.")
 

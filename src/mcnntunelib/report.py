@@ -12,6 +12,7 @@ from mcnntunelib.templates.raw import raw
 from mcnntunelib.templates.minimization import minimization
 from mcnntunelib.templates.model import model
 from mcnntunelib.templates.config import config
+from mcnntunelib.templates.data import data
 from jinja2 import Template
 import numpy as np
 
@@ -24,6 +25,7 @@ class Report(object):
 
     def save(self, dictionary):
         tmplindex = [('index', Template(index)),
+                     ('data', Template(data)),
                      ('model', Template(model)),
                      ('minimization', Template(minimization)),
                      ('raw', Template(raw)),
@@ -99,3 +101,31 @@ class Report(object):
         plt.title('Loss function distribution')
         plt.grid()
         plt.savefig('%s/plots/model_loss_hist.svg' % self.path)
+
+    def plot_data(self, data, predictions):
+
+        ifirst = 0
+        for i, hist in enumerate(data.plotinfo):
+            size = len(hist['y'])
+            plt.figure()
+            fig = plt.figure(1)
+            plt.subplot(211)
+
+            plt.errorbar(hist['x'], hist['y'], yerr=hist['yerr'],
+                         marker='o', linestyle='none', label='data')
+
+            plt.plot(hist['x'], predictions[ifirst:ifirst+size], '-', label='best model')
+
+            plt.yscale('log')
+            plt.legend(loc='best')
+            plt.title(hist['title'])
+
+            plt.subplot(212)
+
+            plt.errorbar(hist['x'], hist['y']/hist['y'], yerr=hist['yerr']/hist['y'],
+                         marker='o', linestyle='none', label='data')
+            plt.plot(hist['x'], predictions[ifirst:ifirst+size]/hist['y'], '-', label='best model')
+
+            fig.savefig('%s/plots/%d_data.svg' % (self.path, i))
+
+            ifirst += size+1
