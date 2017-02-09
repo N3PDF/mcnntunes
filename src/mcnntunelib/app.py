@@ -66,11 +66,11 @@ class App(object):
             # save model to disk
             nn.save('%s/model.h5' % self.args.output)
 
-            rep.plot_model(nn, runs)
-
         info('\n [======= Experimental data =======]')
         expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
                        self.config.unpatterns, expData=True)
+
+        rep.plot_model(nn, runs, expdata)
 
         # check dims consistency
         if runs.y.shape[1] != expdata.y.shape[1]:
@@ -89,7 +89,7 @@ class App(object):
         info('\n [======= Result Summary =======]')
         show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
 
-        display_output = { 'results' : [], 'version': __version__,
+        display_output = { 'results': [], 'version': __version__,
                            'chi2': result[1], 'dof': len(expdata.y[0]),
                            'loss': nn.loss[-1], 'scan': self.config.scan}
         for i, p in enumerate(runs.params):
@@ -101,7 +101,7 @@ class App(object):
         info('\n [======= Generating report =======]')
 
         up = runs.unscale_y(nn.predict(result[0].reshape(1,result[0].shape[0])).reshape(expdata.y.shape[1]))
-        rep.plot_data(expdata, up)
+        rep.plot_data(expdata, up, runs)
 
         display_output['data_hists'] = len(expdata.plotinfo)
 

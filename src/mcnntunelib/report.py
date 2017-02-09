@@ -64,7 +64,7 @@ class Report(object):
             plt.grid()
             plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
 
-    def plot_model(self, model, runs):
+    def plot_model(self, model, runs, data):
         """"""
         if not model.use_scan:
             plt.figure()
@@ -80,8 +80,8 @@ class Report(object):
         # scatter plot
         loss_runs = []
         for r in range(runs.x_scaled.shape[0]):
-            loss_runs.append(model.model.evaluate(runs.x_scaled[r].reshape(1,5),
-                                        runs.y_scaled[r].reshape(1,12),
+            loss_runs.append(model.model.evaluate(runs.x_scaled[r].reshape(1,runs.x_scaled.shape[1]),
+                                        runs.y_scaled[r].reshape(1,runs.y_scaled.shape[1]),
                                         verbose=0))
         plt.figure()
         plt.plot(loss_runs)
@@ -102,14 +102,19 @@ class Report(object):
         plt.grid()
         plt.savefig('%s/plots/model_loss_hist.svg' % self.path)
 
-    def plot_data(self, data, predictions):
+    def plot_data(self, data, predictions, runs):
 
         ifirst = 0
         for i, hist in enumerate(data.plotinfo):
             size = len(hist['y'])
             plt.figure()
-            fig = plt.figure(1)
             plt.subplot(211)
+
+            rs = [ item for item in runs.plotinfo if item['title'] == hist['title']]
+            up = np.vstack([r['y'] for r in rs]).max(axis=0)
+            dn = np.vstack([r['y'] for r in rs]).min(axis=0)
+
+            plt.fill_between(hist['x'], dn, up, color='#ffff00')
 
             plt.errorbar(hist['x'], hist['y'], yerr=hist['yerr'],
                          marker='o', linestyle='none', label='data')
@@ -126,6 +131,6 @@ class Report(object):
                          marker='o', linestyle='none', label='data')
             plt.plot(hist['x'], predictions[ifirst:ifirst+size]/hist['y'], '-', label='best model')
 
-            fig.savefig('%s/plots/%d_data.svg' % (self.path, i))
+            plt.savefig('%s/plots/%d_data.svg' % (self.path, i))
 
-            ifirst += size+1
+            ifirst += size

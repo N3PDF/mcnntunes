@@ -74,7 +74,7 @@ class NNModel(object):
         else: njobs = 1
 
         grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=njobs,
-                            scoring='neg_mean_squared_error', cv=setup['kfold'])
+                            scoring='neg_mean_squared_error', cv=setup['kfold'],verbose=10)
         grid_result = grid.fit(x, y)
 
         # summary
@@ -106,4 +106,3 @@ class NNModel(object):
         self.model = load_model(file)
         self.loss = pickle.load(open('%s.p' % file, 'rb'))
         show('\n- Model loaded from %s' % file)
-
