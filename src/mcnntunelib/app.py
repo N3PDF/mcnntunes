@@ -4,6 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+import time
 import argparse, shutil, filecmp, logging
 from runcardio import Config
 from yodaio import Data
@@ -15,38 +16,155 @@ from tools import make_dir, show, info, success, \
 import numpy as np
 
 
+
+
 class App(object):
+
+    RUNS_DATA = '%s/data/runs.p'
 
     def __init__(self):
         """reads the runcard and parse cmd arguments"""
         self.args = self.argparser().parse_args()
         make_dir(self.args.output)
+        make_dir('%s/logs' % self.args.output)
+        make_dir('%s/data' % self.args.output)
 
-        logging.basicConfig(format='%(message)s', filename='%s/output.log' % self.args.output,
+        if self.args.preprocess:
+            outfile = '%s/logs/preprocess.log' % self.args.output
+        elif self.args.model:
+            outfile = '%s/logs/model_bin_%s.log' % (self.args.output,self.args.bin)
+        else:
+            outfile = '%s/logs/minimize.log' % self.args.output
+
+        logging.basicConfig(format='%(message)s', filename=outfile,
                             filemode='w', level=logging.INFO)
 
         self.splash()
 
         with open(self.args.runcard, 'rb') as file:
             self.config = Config.from_yaml(file)
-        if not self.args.load_from:
+        if self.args.preprocess:
             shutil.copy(self.args.runcard, '%s/runcard.yml' % self.args.output)
         else:
-            if not filecmp.cmp(self.args.runcard, '%s/runcard.yml' % self.args.output):
-                error('Stored runcard has changed')
+            try:
+                if not filecmp.cmp(self.args.runcard, '%s/runcard.yml' % self.args.output):
+                    error('Stored runcard has changed')
+            except OSError:
+                error('Run preprocess first')
 
         np.random.seed(self.config.seed)
 
     def run(self):
+
+        start_time = time.time()
+
+        if self.args.preprocess:
+            # first step
+            self.preprocess()
+        elif self.args.model:
+            # perform fit per bin
+            self.create_model()
+        else:
+            self.minimize()
+
+        show(" --- %s seconds ---" % (time.time() - start_time))
+
+    def preprocess(self):
+        """Prepare and describe MC input data"""
+        info('\n [======= Preprocess mode =======]')
+
+        # search for yoda files
+        self.config.discover_yodas()
+
+        # open yoda files
+        runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns)
+
+        # saving data to file
+        runs.save(self.RUNS_DATA % self.args.output)
+
+        show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
+
+        success('\n [======= Preprocess Completed =======]\n')
+
+    def create_model(self):
         """main loop"""
+
+        info('\n [======= Model mode =======]')
+
+        runs = Data.load(self.RUNS_DATA % self.args.output)
+
+        info('\n [======= Training NN model =======]')
+
         nn = NNModel()
+        bin = self.args.bin
+        if bin < 1 or bin > runs.y.shape[1]:
+            error('Bin out of bounds [1,%d]' % runs.y.shape[1])
+
+        make_dir('%s/model_bin_%d' % (self.args.output,bin))
+
+        show('\n- Fitting bin %d' % bin)
+
+        if not self.config.scan:
+            nn.fit_noscan(runs.x_scaled, runs.y_scaled[:, bin-1], self.config.noscan_setup)
+        else:
+            nn.fit_scan(runs.x_scaled, runs.y_scaled[:, bin-1], self.config.scan_setup, self.args.parallel)
+
+        # save model to disk
+        nn.save('%s/model_bin_%d/model.h5' % (self.args.output, bin))
+
+        #nn.plot('%s/model_bin_%d' % (self.args.output,bin))
+
+        success('\n [======= Minimize Completed =======]\n')
+
+    def minimize(self):
+        """"""
+        info('\n [======= Minimize mode =======]')
+
+        runs = Data.load(self.RUNS_DATA % self.args.output)
+
+        info('\n [======= Experimental data =======]')
+        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
+                       self.config.unpatterns, expData=True)
+
+        # check dims consistency
+        if runs.y.shape[1] != expdata.y.shape[1]:
+            error('Output dimension mismatch between MC and Experimental data')
+
+        nns = []
+        for bin in range(runs.y.shape[1]):
+            nn = NNModel()
+            nn.load('%s/model_bin_%d/model.h5' % (self.args.output, bin+1))
+            nns.append(nn)
+
+        info('\n [======= Minimizing chi2 =======]')
+        m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
+        result = m.minimize()
+
+        best_x = result[0] * runs.x_std + runs.x_mean
+        best_rel = np.abs(result[6] / result[0])
+        best_std = best_x * best_rel
 
         rep = Report(self.args.output)
 
-        info('\n [======= MC data =======]')
+        info('\n [======= Result Summary =======]')
+        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
+
+        for i, p in enumerate(runs.params):
+            show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
+
+        up = np.zeros(expdata.y.shape[1])
+        for i, nn in enumerate(nns):
+            up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
+
+        rep.plot_data(expdata, runs.unscale_y(up), runs)
+
+        """
+        rep = Report(self.args.output)
+
         if self.args.load_from is not None:
-            runs = Data.load('%s/runs.p' % self.args.load_from)
-            nn.load('%s/model.h5' % self.args.load_from)
+            #runs = Data.load('%s/runs.p' % self.args.load_from)
+            #nn.load('%s/model.h5' % self.args.load_from)
+            pass
         else:
             # find MC run files
             self.config.discover_yodas()
@@ -59,12 +177,13 @@ class App(object):
 
             info('\n [======= Training NN model =======]')
             if not self.config.scan:
-                nn.fit_noscan(runs.x_scaled, runs.y_scaled, self.config.noscan_setup)
+                nn.fit_noscan(runs.x_scaled, runs.y_scaled[:,0], self.config.noscan_setup)
             else:
-                nn.fit_scan(runs.x_scaled, runs.y_scaled, self.config.scan_setup, self.args.parallel)
+                nn.fit_scan(runs.x_scaled, runs.y_scaled[:,0], self.config.scan_setup, self.args.parallel)
 
             # save model to disk
             nn.save('%s/model.h5' % self.args.output)
+
 
         info('\n [======= Experimental data =======]')
         expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
@@ -72,9 +191,7 @@ class App(object):
 
         rep.plot_model(nn, runs, expdata)
 
-        # check dims consistency
-        if runs.y.shape[1] != expdata.y.shape[1]:
-            error('Output dimension mismatch between MC and Experimental data')
+
 
         info('\n [======= Minimizing chi2 =======]')
         m = CMAES(nn, expdata, runs, self.config.bounds, self.args.output)
@@ -112,8 +229,8 @@ class App(object):
             display_output['configuration'] = f.read()
 
         rep.save(display_output)
-
-        success('\n [======= Completed =======]\n')
+        """
+        success('\n [======= Minimize Completed =======]\n')
 
     def argparser(self):
         """prepare the argument parser"""
@@ -121,11 +238,23 @@ class App(object):
             description="Perform a MC tunes with Neural Networks.",
             formatter_class=argparse.RawDescriptionHelpFormatter
         )
+
+        subparsers = parser.add_subparsers(help='sub-command help')
+        parser_preprocess = subparsers.add_parser('preprocess', help='preprocess input/output data')
+        parser_preprocess.set_defaults(preprocess=True, model=False, minimize=False)
+
+        parser_model = subparsers.add_parser('model', help='fit NN model to bin')
+        parser_model.add_argument('-b','--bin', help='the output bin to fit [1,NBINS]', type=int, required=True)
+        parser_model.set_defaults(model=True, preprocess=False, minimize=False)
+
+        parser_minimize = subparsers.add_parser('minimize', help='minimize and provide final tune')
+        parser_minimize.set_defaults(model=False, preprocess=False, minimize=True)
+
         parser.add_argument('runcard', help='the runcard file.')
-        parser.add_argument('--output', '-o', help='the output folder', default='output')
-        parser.add_argument('--load-from', '-l', help='load model from folder')
-        parser.add_argument('--parallel', dest='parallel', action='store_true',
-                            help='use multicore during grid search', default=False)
+        parser.add_argument('-o', '--output', help='the output folder', default='output')
+        parser.add_argument('-p','--parallel', dest='parallel', action='store_true',
+                            help='use multicore during grid search cv', default=False)
+
         return parser
 
     def splash(self):

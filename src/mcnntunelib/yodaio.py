@@ -59,7 +59,7 @@ class Data(object):
             self.params = input_param
             self.x = np.zeros(shape=(entries, input_size))
 
-        show('\n- Detected output parameters: %d' % output_size)
+        show('\n- Detected output bins: %d' % output_size)
 
         self.y = np.zeros(shape=(entries, output_size))
         self.yerr = np.zeros(shape=(entries, output_size))
@@ -100,6 +100,9 @@ class Data(object):
             self.y_mean = np.mean(self.y, axis=0)
             self.y_std = np.std(self.y, axis=0)
             self.y_scaled = (self.y - self.y_mean) / self.y_std
+        else:
+            self.y_mean = np.mean(self.y, axis=1)
+            self.y_scaled = self.y-self.y_mean
 
         show('\n- Data standardized successfully')
 

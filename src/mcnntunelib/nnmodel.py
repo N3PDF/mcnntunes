@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-import pickle
+import pickle, h5py
 import numpy as np
 from tools import show
 from keras.models import Sequential
@@ -14,7 +14,7 @@ from keras.wrappers.scikit_learn import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 
 
-def build_model(input_dim=None, output_dim=None,
+def build_model(input_dim=None, output_dim=1,
                 optimizer='rmsprop', loss='mse',
                 architecture=None, actfunction=None,
                 init='glorot_uniform'):
@@ -47,7 +47,7 @@ class NNModel(object):
         for key in setup.keys():
             show('  - %s : %s' % (key, setup.get(key)))
 
-        self.model = build_model(x.shape[1], y.shape[1],
+        self.model = build_model(x.shape[1], 1,
                                  setup['optimizer'], 'mse',
                                  setup['architecture'], setup['actfunction'])
 
@@ -66,7 +66,6 @@ class NNModel(object):
         param_grid = dict(setup)
         param_grid.pop('kfold')
         param_grid['input_dim'] = [x.shape[1]]
-        param_grid['output_dim'] = [y.shape[1]]
 
         if parallel:
             njobs=-1
@@ -99,10 +98,22 @@ class NNModel(object):
     def save(self, file):
         """save model to file"""
         self.model.save(file)
+        with h5py.File(file, 'r+') as f:
+            del f['optimizer_weights']
+            f.close()
+
         pickle.dump(self.loss, open('%s.p' % file, 'wb'))
+        show('\n- Model saved in %s' % file)
 
     def load(self, file):
         """load model from file"""
         self.model = load_model(file)
         self.loss = pickle.load(open('%s.p' % file, 'rb'))
         show('\n- Model loaded from %s' % file)
+
+    def plot(self, path):
+
+        import matplotlib.pyplot as plt
+        for i in range(self.input_dim):
+            plt.figure()
+            plt.plot(self.x[:,i], self.y)
