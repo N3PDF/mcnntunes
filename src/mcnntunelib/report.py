@@ -40,8 +40,8 @@ class Report(object):
 
     def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs):
         """"""
-        minimizer.es.plot()
-        plt.savefig('%s/plots/minimizer.svg' % self.path)
+        #minimizer.es.plot()
+        #plt.savefig('%s/plots/minimizer.svg' % self.path)
 
         # plot 1d profiles
         for dim in range(runs.x_scaled.shape[1]):
@@ -107,12 +107,12 @@ class Report(object):
         ifirst = 0
         for i, hist in enumerate(data.plotinfo):
             size = len(hist['y'])
-            plt.figure()
-            plt.subplot(211)
-
-            rs = [ item for item in runs.plotinfo if item['title'] == hist['title']]
+            rs = [item for item in runs.plotinfo if item['title'] == hist['title']]
             up = np.vstack([r['y'] for r in rs]).max(axis=0)
             dn = np.vstack([r['y'] for r in rs]).min(axis=0)
+
+            plt.figure()
+            plt.subplot(211)
 
             plt.fill_between(hist['x'], dn, up, color='#ffff00')
 

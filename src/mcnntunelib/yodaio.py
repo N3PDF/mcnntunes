@@ -27,6 +27,8 @@ class Data(object):
 
         if expData:
             yoda_histograms = [dict(pair for d in yoda_histograms for pair in d.items())]
+            for key in yoda_histograms[0]:
+                yoda_histograms[0][key.replace('/REF','')] = yoda_histograms[0].pop(key)
 
         entries = len(yoda_histograms)
         if entries == 0:

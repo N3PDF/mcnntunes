@@ -16,8 +16,6 @@ from tools import make_dir, show, info, success, \
 import numpy as np
 
 
-
-
 class App(object):
 
     RUNS_DATA = '%s/data/runs.p'
@@ -104,15 +102,16 @@ class App(object):
 
         show('\n- Fitting bin %d' % bin)
 
+        x = runs.x_scaled
+        y = runs.y_scaled[:, bin-1]
         if not self.config.scan:
-            nn.fit_noscan(runs.x_scaled, runs.y_scaled[:, bin-1], self.config.noscan_setup)
+            nn.fit_noscan(x, y, self.config.noscan_setup)
         else:
-            nn.fit_scan(runs.x_scaled, runs.y_scaled[:, bin-1], self.config.scan_setup, self.args.parallel)
+            nn.fit_scan(x, y, self.config.scan_setup, self.args.parallel)
 
         # save model to disk
         nn.save('%s/model_bin_%d/model.h5' % (self.args.output, bin))
-
-        #nn.plot('%s/model_bin_%d' % (self.args.output,bin))
+        nn.plot('%s/model_bin_%d' % (self.args.output, bin), x, y)
 
         success('\n [======= Minimize Completed =======]\n')
 
@@ -140,23 +139,40 @@ class App(object):
         m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
         result = m.minimize()
 
+        print result[0]
         best_x = result[0] * runs.x_std + runs.x_mean
         best_rel = np.abs(result[6] / result[0])
         best_std = best_x * best_rel
 
-        rep = Report(self.args.output)
-
         info('\n [======= Result Summary =======]')
         show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
 
+        display_output = {'results': [], 'version': __version__,
+                          'chi2': result[1], 'dof': len(expdata.y[0]),
+                          'loss': 0, 'scan': self.config.scan}
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
+            display_output['results'].append({'name': p,
+                                          'x': str('%e') % best_x[i],
+                                          'std': str('%e') % best_std[i]})
 
         up = np.zeros(expdata.y.shape[1])
         for i, nn in enumerate(nns):
             up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
 
+        rep = Report(self.args.output)
         rep.plot_data(expdata, runs.unscale_y(up), runs)
+        rep.plot_minimize(m, best_x, result[0], runs)
+
+        display_output['data_hists'] = len(expdata.plotinfo)
+
+        with open('%s/logs/minimize.log' % self.args.output, 'rb') as f:
+            display_output['raw_output'] = f.read()
+
+        with open('%s/runcard.yml' % self.args.output, 'rb') as f:
+            display_output['configuration'] = f.read()
+
+        rep.save(display_output)
 
         """
         rep = Report(self.args.output)

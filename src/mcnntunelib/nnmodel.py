@@ -111,9 +111,25 @@ class NNModel(object):
         self.loss = pickle.load(open('%s.p' % file, 'rb'))
         show('\n- Model loaded from %s' % file)
 
-    def plot(self, path):
-
+    def plot(self, path, x, y):
+        """"""
         import matplotlib.pyplot as plt
-        for i in range(self.input_dim):
+        for i in range(x.shape[1]):
             plt.figure()
-            plt.plot(self.x[:,i], self.y)
+            plt.plot(x[:,i], y, 'o', color='c', label='MC run')
+            plt.plot(x[:,i], self.predict(x), 'o', color='r', alpha=0.5, label='NN model')
+            plt.xlabel('x%d' % i)
+            plt.ylabel('bin value')
+            plt.legend(loc='best')
+            plt.grid()
+            plt.savefig('%s/x%d.svg' % (path, i))
+
+        plt.figure()
+        plt.plot(self.loss)
+        plt.title('loss function')
+        plt.xlabel('iteration')
+        plt.ylabel('loss')
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.grid()
+        plt.savefig('%s/loss.svg' % path)
