@@ -2,6 +2,7 @@
 
 #############################
 input:
+  seed: 0
   folders:
     - theory_input
   patterns:
@@ -123,13 +124,13 @@ input:
     - '/LHCB_2012_I1208102/d02-x01-y01'
     - '/LHCB_2012_I1208102/d03-x01-y01'
   unpatterns:
-    - ''
+    - 'None'
   expfiles:
     - '/usr/local/share/Rivet/ATLAS_2011_I928289_Z.yoda'
     - '/usr/local/share/Rivet/ATLAS_2012_I1204784.yoda'
     - '/usr/local/share/Rivet/ATLAS_2013_I1230812.yoda'
     - '/usr/local/share/Rivet/ATLAS_2014_I1300647.yoda'
-    - '/usr/local/share/Rivet/ATLAS_2016_I1424838.yoda
+    - '/usr/local/share/Rivet/ATLAS_2016_I1424838.yoda'
     - '/usr/local/share/Rivet/CMS_2012_I941555.yoda'
     - '/usr/local/share/Rivet/CMS_2013_I1209721.yoda'
     - '/usr/local/share/Rivet/CMS_2013_I1224539_ZJET.yoda'

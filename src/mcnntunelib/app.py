@@ -19,6 +19,7 @@ import numpy as np
 class App(object):
 
     RUNS_DATA = '%s/data/runs.p'
+    EXP_DATA = '%s/data/expdata.p'
 
     def __init__(self):
         """reads the runcard and parse cmd arguments"""
@@ -74,13 +75,45 @@ class App(object):
         # search for yoda files
         self.config.discover_yodas()
 
+        info('\n [======= Loading MC data =======]')
+
         # open yoda files
         runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns)
 
         # saving data to file
         runs.save(self.RUNS_DATA % self.args.output)
 
+        info('\n [======= Loading experimental data =======]')
+
+        # loading experimental data
+        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
+                       self.config.unpatterns, expData=True)
+
+        # save to disk
+        expdata.save(self.EXP_DATA % self.args.output)
+
+        if runs.y.shape[1] != expdata.y.shape[1]:
+            raise error('Number of output mismatch between MC runs and data.')
+
         show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
+
+        # print chi2 to MC
+        info('\n [======= Chi2 Data-MC =======]')
+
+        # total chi2
+        chi2 = []
+        for rep in range(runs.y.shape[0]):
+            chi2.append(np.mean(np.square((runs.y[rep]-expdata.y)/expdata.yerr)))
+        show('\n Total best chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2),np.argmin(chi2),np.mean(chi2)))
+
+        ifirst = 0
+        for distribution in expdata.plotinfo:
+            size = len(distribution['y'])
+            chi2 = []
+            for rep in range(runs.y.shape[0]):
+                chi2.append(np.mean(np.square((runs.y[rep][ifirst:ifirst + size] - distribution['y']) / distribution['yerr'])))
+            ifirst += size
+            show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2),np.mean(chi2)))
 
         success('\n [======= Preprocess Completed =======]\n')
 
@@ -121,13 +154,7 @@ class App(object):
 
         runs = Data.load(self.RUNS_DATA % self.args.output)
 
-        info('\n [======= Experimental data =======]')
-        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
-                       self.config.unpatterns, expData=True)
-
-        # check dims consistency
-        if runs.y.shape[1] != expdata.y.shape[1]:
-            error('Output dimension mismatch between MC and Experimental data')
+        expdata = Data.load(self.EXP_DATA % self.args.output)
 
         nns = []
         for bin in range(runs.y.shape[1]):
@@ -139,7 +166,6 @@ class App(object):
         m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
         result = m.minimize()
 
-        print result[0]
         best_x = result[0] * runs.x_std + runs.x_mean
         best_rel = np.abs(result[6] / result[0])
         best_std = best_x * best_rel
@@ -175,76 +201,8 @@ class App(object):
         rep.save(display_output)
 
         """
-        rep = Report(self.args.output)
-
-        if self.args.load_from is not None:
-            #runs = Data.load('%s/runs.p' % self.args.load_from)
-            #nn.load('%s/model.h5' % self.args.load_from)
-            pass
-        else:
-            # find MC run files
-            self.config.discover_yodas()
-
-            # open yoda files
-            runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns)
-
-            # saving data to file
-            runs.save('%s/runs.p' % self.args.output)
-
-            info('\n [======= Training NN model =======]')
-            if not self.config.scan:
-                nn.fit_noscan(runs.x_scaled, runs.y_scaled[:,0], self.config.noscan_setup)
-            else:
-                nn.fit_scan(runs.x_scaled, runs.y_scaled[:,0], self.config.scan_setup, self.args.parallel)
-
-            # save model to disk
-            nn.save('%s/model.h5' % self.args.output)
-
-
-        info('\n [======= Experimental data =======]')
-        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
-                       self.config.unpatterns, expData=True)
-
         rep.plot_model(nn, runs, expdata)
-
-
-
-        info('\n [======= Minimizing chi2 =======]')
-        m = CMAES(nn, expdata, runs, self.config.bounds, self.args.output)
-        result = m.minimize()
-
-        best_x = result[0]*runs.x_std+runs.x_mean
-        best_rel = np.abs(result[6]/result[0])
-        best_std = best_x*best_rel
-
         rep.plot_minimize(m, best_x, result[0], runs)
-
-        info('\n [======= Result Summary =======]')
-        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
-
-        display_output = { 'results': [], 'version': __version__,
-                           'chi2': result[1], 'dof': len(expdata.y[0]),
-                           'loss': nn.loss[-1], 'scan': self.config.scan}
-        for i, p in enumerate(runs.params):
-            show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
-            display_output['results'].append({'name':p,
-                                              'x': str('%e') % best_x[i],
-                                              'std': str('%e') % best_std[i]})
-
-        info('\n [======= Generating report =======]')
-
-        up = runs.unscale_y(nn.predict(result[0].reshape(1,result[0].shape[0])).reshape(expdata.y.shape[1]))
-        rep.plot_data(expdata, up, runs)
-
-        display_output['data_hists'] = len(expdata.plotinfo)
-
-        with open('%s/output.log' % self.args.output, 'rb') as f:
-            display_output['raw_output'] = f.read()
-
-        with open('%s/runcard.yml' % self.args.output, 'rb') as f:
-            display_output['configuration'] = f.read()
-
-        rep.save(display_output)
         """
         success('\n [======= Minimize Completed =======]\n')
 

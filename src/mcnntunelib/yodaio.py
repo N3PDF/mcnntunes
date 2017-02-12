@@ -15,6 +15,7 @@ class Data(object):
 
     def __init__(self, filenames, patterns, unpatterns, expData=False):
         """the data container"""
+        self.expData = expData
         show('\n- Reading yoda files...')
         yoda_histograms = []
         for i, filename in enumerate(filenames):
@@ -34,9 +35,6 @@ class Data(object):
         if entries == 0:
             error('Problem with input histograms')
 
-        for keys in yoda_histograms[0]:
-            show('  ==] Loaded %s from %d runs' % (keys, entries))
-
         # scan space using first yoda file
         input_param = []
         output_size = 0
@@ -52,6 +50,7 @@ class Data(object):
                 for p in param:
                     if p not in input_param:
                         input_param.append(p)
+            show('  ==] Loaded %s from %d runs (dof=%d)' % (key, entries, len(h.points)))
 
         if not expData:
             input_size = len(input_param)
@@ -134,5 +133,6 @@ class Data(object):
         """read yaml from stream"""
         obj = pickle.load(open(stream,'rb'))
         show('\n- Loaded data from %s' % stream)
-        show('\n- Detected %d inputs and %d outputs for %d entries' %(obj.x.shape[1], obj.y.shape[1], obj.x.shape[0]))
+        if not obj.expData:
+            show('\n- Detected %d inputs and %d outputs for %d entries' %(obj.x.shape[1], obj.y.shape[1], obj.x.shape[0]))
         return obj
