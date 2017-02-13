@@ -6,6 +6,8 @@ Performs MC tunes using Neural Networks
 
 import time
 import argparse, shutil, filecmp, logging
+from astropy.visualization.hist import hist
+
 from runcardio import Config
 from yodaio import Data
 from nnmodel import NNModel
@@ -86,8 +88,7 @@ class App(object):
         info('\n [======= Loading experimental data =======]')
 
         # loading experimental data
-        expdata = Data(self.config.expfiles, ['/REF%s' % e for e in self.config.patterns],
-                       self.config.unpatterns, expData=True)
+        expdata = Data(self.config.expfiles, self.config.patterns, self.config.unpatterns, expData=True)
 
         # save to disk
         expdata.save(self.EXP_DATA % self.args.output)

@@ -16,9 +16,10 @@ class Data(object):
     def __init__(self, filenames, patterns, unpatterns, expData=False):
         """the data container"""
         self.expData = expData
+
         show('\n- Reading yoda files...')
         yoda_histograms = []
-        for i, filename in enumerate(filenames):
+        for filename in filenames:
             r = yoda.read(filename, patterns=patterns, unpatterns=unpatterns)
             if len(r) == 0 and expData == False:
                 error('Empty histograms following pattern %s' % patterns)
@@ -27,9 +28,10 @@ class Data(object):
             yoda_histograms.append(r)
 
         if expData:
-            yoda_histograms = [dict(pair for d in yoda_histograms for pair in d.items())]
-            for key in yoda_histograms[0]:
-                yoda_histograms[0][key.replace('/REF','')] = yoda_histograms[0].pop(key)
+            tmp_yoda_histograms = dict(pair for d in yoda_histograms for pair in d.items())
+            yoda_histograms[0] = {}
+            for key in tmp_yoda_histograms:
+                yoda_histograms[0][key[4:]] = tmp_yoda_histograms[key]
 
         entries = len(yoda_histograms)
         if entries == 0:
@@ -39,7 +41,7 @@ class Data(object):
         input_param = []
         output_size = 0
         obj = yoda_histograms[0]
-        for key in obj:
+        for key in sorted(obj):
             try:
                 h = obj.get(key)
             except:
@@ -67,31 +69,29 @@ class Data(object):
 
         # load data from files
         self.plotinfo = []
-        try:
-            for i, file in enumerate(yoda_histograms):
-                index = 0
-                for key in file:
-                    h = file.get(key)
-                    if not expData:
-                        for j, inparam in enumerate(input_param):
-                            self.x[i, j] = h.annotation(inparam)
-                    data_x = np.zeros(len(h.points))
-                    data_y = np.zeros(len(h.points))
-                    data_yerr = np.zeros(len(h.points))
-                    for t, p in enumerate(h.points):
-                        self.y[i,index] = p.y
-                        self.yerr[i,index] = p.yErrAvg
-                        index += 1
-                        data_x[t] = p.x
-                        data_y[t] = p.y
-                        data_yerr[t] = p.yErrAvg
-                    self.plotinfo.append({'title': key.replace('/REF',''),
-                                          'x': data_x,
-                                          'y': data_y,
-                                          'yerr': data_yerr})
-        except:
-            error("Error: yoda files are not consistent.")
-
+        for i, file in enumerate(yoda_histograms):
+            index = 0
+            for key in sorted(file):
+                h = file.get(key)
+                if not expData:
+                    for j, inparam in enumerate(input_param):
+                        self.x[i, j] = h.annotation(inparam)
+                data_x = np.zeros(len(h.points))
+                data_y = np.zeros(len(h.points))
+                data_yerr = np.zeros(len(h.points))
+                for t, p in enumerate(h.points):
+                    self.y[i,index] = p.y
+                    self.yerr[i,index] = p.yErrAvg
+                    index += 1
+                    data_x[t] = p.x
+                    data_y[t] = p.y
+                    data_yerr[t] = p.yErrAvg
+                if np.sum(self.y[i]) == 0:
+                    raise error('Histogram %s has empty entries' % key)
+                self.plotinfo.append({'title': key.replace('/REF',''),
+                                      'x': data_x,
+                                      'y': data_y,
+                                      'yerr': data_yerr})
         show('\n- Data loaded successfully')
 
         if not expData:
