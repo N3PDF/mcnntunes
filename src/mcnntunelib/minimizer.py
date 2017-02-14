@@ -50,7 +50,7 @@ class CMAES(object):
                    str([self.center] * self.runs.x_scaled.shape[1]),
                    self.sigma,
                    self.opts,
-                   restarts=3,
+                   restarts=0,
                    bipop=True)
         return res
         #self.es.optimize(self.chi2)

@@ -77,6 +77,8 @@ class Data(object):
                     for j, inparam in enumerate(input_param):
                         self.x[i, j] = h.annotation(inparam)
                 data_x = np.zeros(len(h.points))
+                data_xerrm = np.zeros(len(h.points))
+                data_xerrp = np.zeros(len(h.points))
                 data_y = np.zeros(len(h.points))
                 data_yerr = np.zeros(len(h.points))
                 for t, p in enumerate(h.points):
@@ -84,6 +86,8 @@ class Data(object):
                     self.yerr[i,index] = p.yErrAvg
                     index += 1
                     data_x[t] = p.x
+                    data_xerrm[t] = p.xErrs[0]
+                    data_xerrp[t] = p.xErrs[1]
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
                     if p.y == 0:
@@ -91,7 +95,9 @@ class Data(object):
                 self.plotinfo.append({'title': key.replace('/REF',''),
                                       'x': data_x,
                                       'y': data_y,
-                                      'yerr': data_yerr})
+                                      'yerr': data_yerr,
+                                      'xerr-': data_xerrm,
+                                      'xerr+': data_xerrp})
         show('\n- Data loaded successfully')
 
         if not expData:

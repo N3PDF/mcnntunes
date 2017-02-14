@@ -188,7 +188,7 @@ class App(object):
             up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
 
         rep = Report(self.args.output)
-        rep.plot_data(expdata, runs.unscale_y(up), runs)
+        rep.plot_data(expdata, runs.unscale_y(up), runs, best_x)
         rep.plot_minimize(m, best_x, result[0], runs)
 
         display_output['data_hists'] = len(expdata.plotinfo)

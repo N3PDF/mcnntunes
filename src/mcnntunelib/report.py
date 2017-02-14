@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-import os, copy
+import os, yoda
 import matplotlib.pyplot as plt
 from tools import make_dir, show
 from mcnntunelib.templates.index import index
@@ -102,8 +102,9 @@ class Report(object):
         plt.grid()
         plt.savefig('%s/plots/model_loss_hist.svg' % self.path)
 
-    def plot_data(self, data, predictions, runs):
+    def plot_data(self, data, predictions, runs, bestx):
 
+        hout = []
         ifirst = 0
         for i, hist in enumerate(data.plotinfo):
             size = len(hist['y'])
@@ -133,4 +134,13 @@ class Report(object):
 
             plt.savefig('%s/plots/%d_data.svg' % (self.path, i))
 
+            h = yoda.Scatter2D(path=hist['title'])
+            for t, p in enumerate(runs.params):
+                h.setAnnotation(p, bestx[t])
+            for p in range(size):
+                h.addPoint(hist['x'][p], predictions[ifirst:ifirst+size][p], [hist['xerr-'][p], hist['xerr+'][p]])
+            hout.append(h)
+
             ifirst += size
+
+        yoda.writeYODA(hout, '%s/best_model.yoda' % self.path)
