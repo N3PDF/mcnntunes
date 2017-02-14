@@ -10,7 +10,7 @@ input:
   unpatterns:
     - 'None'
   expfiles:
-    - '/usr/local/share/Rivet/ATLAS_2016_I1424838.yoda'
+    - 'data/ATLAS_2016_I1424838.yoda'
   weight_bins: off
 
 #############################
@@ -19,14 +19,18 @@ model:
 
   scan_setup:
     nb_epoch: [1000, 2000, 5000]
-    batch_size: [50, 100, 200]
-    loss: ['mse']
+    batch_size: [20, 50, 100, 200]
+    optimizer: ['rmsprop', 'adam', 'sgd']
+    architecture: [[6,15],[3,5],[3,3,3]]
+    actfunction: ['tanh','sigmoid','relu']
+    kfold: 3
 
   noscan_setup:
     optimizer: 'rmsprop'
-    loss: 'mse'
     nb_epoch: 10000
-    batch_size: 50
+    batch_size: 20
+    architecture: [6,15]
+    actfunction: 'tanh'
 
 ##############################
 minimizer:
