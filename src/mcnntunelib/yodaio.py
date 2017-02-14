@@ -86,8 +86,8 @@ class Data(object):
                     data_x[t] = p.x
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
-                if np.sum(self.y[i]) == 0:
-                    raise error('Histogram %s has empty entries' % key)
+                    if p.y == 0:
+                        error('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
                                       'x': data_x,
                                       'y': data_y,
