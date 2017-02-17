@@ -2,7 +2,6 @@
 
 #############################
 input:
-  seed: 0
   folders:
     - theory_input
   patterns:
@@ -15,6 +14,7 @@ input:
 
 #############################
 model:
+  seed: 0
   scan: off
 
   scan_setup:
@@ -35,3 +35,4 @@ model:
 ##############################
 minimizer:
   bounds: on
+  restarts: 0

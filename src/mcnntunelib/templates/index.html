@@ -27,20 +27,31 @@
         </tbody>
     </table>
 
-    <h2>Estimators</h2>
+    <h2>Correlation matrix</h2>
+    <figure>
+        <img src="plots/correlations.svg" alt="correlations">
+    </figure>
+
+    <h2>Model estimators</h2>
 
     <table>
         <thead>
         <tr>
-            <th scope="col">Estimator name</th>
-            <th scope="col">Estimator value</th>
+            <th scope="col">Item</th>
+            <th scope="col">Model</th>
+            <th scope="col">Min. MC runs</th>
+            <th scope="col">Avg. MC runs</th>
         </tr>
         </thead>
         <tbody>
+        {% for row in summary %}
         <tr>
-            <td>Final chi2/dof</td>
-            <td>{{chi2}}</td>
+            <td>{{row.name}}</td>
+            <td>{{row.model}}</td>
+            <td>{{row.min}}</td>
+            <td>{{row.mean}}</td>
         </tr>
+        {% endfor %}
         </tbody>
     </table>
 </div>

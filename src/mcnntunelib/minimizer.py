@@ -7,7 +7,6 @@ Performs MC tunes using Neural Networks
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
-import cma
 from cma import fmin
 
 
@@ -24,14 +23,16 @@ class CMAES(object):
         s0min = np.min(runs.x_scaled, axis=0).tolist()
         self.center = 0
         self.sigma = 1
+
+        self.opts = {'verb_filenameprefix': '%s/cma-' % output}
         if useBounds:
-            self.opts = {'bounds': [s0min, s0max], 'verb_filenameprefix': '%s/cma-' % output }
-        else:
-            self.opts = {'verb_filenameprefix': '%s/cma-' % output }
+            self.opts['bounds'] = [s0min, s0max]
 
         print('\n- Minimizer setup:')
-        if useBounds: print('  - bounds: on')
-        else: print('  - bounds: off')
+        if useBounds:
+            print('  - bounds: on')
+        else:
+            print('  - bounds: off')
         print('  - centers: %f' % self.center)
         print('  - sigma: %f ' % self.sigma)
 
@@ -43,12 +44,13 @@ class CMAES(object):
         prediction = self.runs.unscale_y(prediction)
         return np.mean(np.square((prediction-self.truth)/self.truth_error))
 
-    def minimize(self):
+    def minimize(self, restarts):
         """"""
+        print('  - restarts: %d ' % restarts)
         res = fmin(self.chi2,
                    str([self.center] * self.runs.x_scaled.shape[1]),
                    self.sigma,
                    self.opts,
-                   restarts=0,
+                   restarts=restarts,
                    bipop=True)
         return res

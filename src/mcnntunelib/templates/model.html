@@ -3,21 +3,25 @@
 {% block body %}
 <div class="markdown-body">
 
-    <p>Final loss function: {{loss}}</p>
-
-    {% if not scan %}
-    <h2>Training loss</h2>
-
+    <h2>Model vs MC runs uncertainties</h2>
     <figure>
-        <img src="plots/loss.svg" alt="model loss">
+        <img src="plots/errors.svg" alt="errors">
     </figure>
-    {% endif %}
 
-    <h2>Model evaluation</h2>
+    <h2>Model loss (scaled loss)</h2>
+    <p>Final average loss function: {{avg_loss}}</p>
     <figure>
         <img src="plots/model_loss.svg" alt="model loss">
-        <img src="plots/model_loss_hist.svg" alt="model loss">
     </figure>
+
+    <h2>Model loss per parameter (scaled loss)</h2>
+    <div>
+        <figure>
+            {% for param in results %}
+            <img src="plots/bounds_{{loop.index-1}}.svg" alt="bounds">
+            {% endfor %}
+        </figure>
+    </div>
 
 </div>
 {% endblock %}

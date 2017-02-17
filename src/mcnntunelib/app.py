@@ -4,17 +4,14 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-import time
+import time, pickle
 import argparse, shutil, filecmp, logging
-from astropy.visualization.hist import hist
-
 from runcardio import Config
 from yodaio import Data
 from nnmodel import NNModel
 from minimizer import CMAES
 from report import Report
-from tools import make_dir, show, info, success, \
-    error, __version__, __author__
+from tools import make_dir, show, info, success, error, __version__, __author__
 import numpy as np
 
 
@@ -53,6 +50,7 @@ class App(object):
             except OSError:
                 error('Run preprocess first')
 
+        # fix model seed
         np.random.seed(self.config.seed)
 
     def run(self):
@@ -101,11 +99,13 @@ class App(object):
         # print chi2 to MC
         info('\n [======= Chi2 Data-MC =======]')
 
+        summary = []
         # total chi2
         chi2 = []
         for rep in range(runs.y.shape[0]):
             chi2.append(np.mean(np.square((runs.y[rep]-expdata.y)/expdata.yerr)))
         show('\n Total best chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
+        summary.append({'name': 'TOTAL', 'min': np.min(chi2), 'mean': np.mean(chi2)})
 
         ifirst = 0
         for distribution in expdata.plotinfo:
@@ -115,6 +115,9 @@ class App(object):
                 chi2.append(np.mean(np.square((runs.y[rep][ifirst:ifirst + size] - distribution['y']) / distribution['yerr'])))
             ifirst += size
             show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
+            summary.append({'name': distribution['title'], 'min': np.min(chi2), 'mean': np.mean(chi2)})
+
+        pickle.dump(summary, open('%s/data/summary.p' % self.args.output, 'wb'))
 
         success('\n [======= Preprocess Completed =======]\n')
 
@@ -165,60 +168,62 @@ class App(object):
 
         info('\n [======= Minimizing chi2 =======]')
         m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
-        result = m.minimize()
+        result = m.minimize(self.config.restarts)
 
         logger = result[-3]
         best_x = result[0] * runs.x_std + runs.x_mean
-        best_std = np.diag(result[-2].C)**0.5*runs.x_std
+        best_std = result[6] * runs.x_std
 
         info('\n [======= Result Summary =======]')
         show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
 
         display_output = {'results': [], 'version': __version__,
-                          'chi2': result[1], 'dof': len(expdata.y[0]),
-                          'loss': 0, 'scan': self.config.scan}
+                          'chi2': result[1], 'dof': len(expdata.y[0])}
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
-            display_output['results'].append({'name': p,
-                                          'x': str('%e') % best_x[i],
+            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
                                           'std': str('%e') % best_std[i]})
 
+        print result[-2].D
+        # print correlation matrix
+        show('\n- Correlation matrix:')
+        corr = result[-2].correlation_matrix()
+        for row in corr:
+            print(row)
+
         # propose eigenvectors
-        eig, vec = np.linalg.eig(result[-2].C)
+        cov = np.zeros(shape=(len(corr),len(corr)))
+        for i in range(cov.shape[0]):
+            for j in range(cov.shape[1]):
+                cov[i,j] = corr[i,j]*best_std[i]*best_std[j]
+        eig, vec = np.linalg.eig(cov)
         replica = result[0] + (eig ** 0.5 * vec).T
         show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
         for rep in replica:
             show(runs.unscale_x(rep))
 
-        # print correlation matrix
-        show('\n- Correlation matrix:')
-        cm = result[-2].correlation_matrix()
-        for row in cm:
-            print(row)
-
         info('\n [======= Building report =======]')
         rep = Report(self.args.output)
+        rep.plot_correlations(corr)
 
         up = np.zeros(expdata.y.shape[1])
         for i, nn in enumerate(nns):
             up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
 
-        rep.plot_data(expdata, runs.unscale_y(up), runs, best_x)
+        display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
+        display_output['summary'][0]['model'] = result[1]
+
+        rep.plot_data(expdata, runs.unscale_y(up), runs, best_x, display_output['summary'])
         rep.plot_minimize(m, logger, best_x, result[0], best_std, runs)
+        display_output['avg_loss'] = rep.plot_model(nns, runs, expdata)
 
         display_output['data_hists'] = len(expdata.plotinfo)
-
         with open('%s/logs/minimize.log' % self.args.output, 'rb') as f:
             display_output['raw_output'] = f.read()
-
         with open('%s/runcard.yml' % self.args.output, 'rb') as f:
             display_output['configuration'] = f.read()
-
         rep.save(display_output)
 
-        """
-        rep.plot_model(nn, runs, expdata)
-        """
         success('\n [======= Minimize Completed =======]\n')
 
     def argparser(self):
