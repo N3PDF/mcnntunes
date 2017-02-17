@@ -105,7 +105,7 @@ class App(object):
         chi2 = []
         for rep in range(runs.y.shape[0]):
             chi2.append(np.mean(np.square((runs.y[rep]-expdata.y)/expdata.yerr)))
-        show('\n Total best chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2),np.argmin(chi2),np.mean(chi2)))
+        show('\n Total best chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
 
         ifirst = 0
         for distribution in expdata.plotinfo:
@@ -114,7 +114,7 @@ class App(object):
             for rep in range(runs.y.shape[0]):
                 chi2.append(np.mean(np.square((runs.y[rep][ifirst:ifirst + size] - distribution['y']) / distribution['yerr'])))
             ifirst += size
-            show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2),np.mean(chi2)))
+            show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
 
         success('\n [======= Preprocess Completed =======]\n')
 
@@ -167,9 +167,9 @@ class App(object):
         m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
         result = m.minimize()
 
+        logger = result[-3]
         best_x = result[0] * runs.x_std + runs.x_mean
-        best_rel = np.abs(result[6] / result[0])
-        best_std = best_x * best_rel
+        best_std = np.diag(result[-2].C)**0.5*runs.x_std
 
         info('\n [======= Result Summary =======]')
         show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
@@ -183,13 +183,28 @@ class App(object):
                                           'x': str('%e') % best_x[i],
                                           'std': str('%e') % best_std[i]})
 
+        # propose eigenvectors
+        eig, vec = np.linalg.eig(result[-2].C)
+        replica = result[0] + (eig ** 0.5 * vec).T
+        show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
+        for rep in replica:
+            show(runs.unscale_x(rep))
+
+        # print correlation matrix
+        show('\n- Correlation matrix:')
+        cm = result[-2].correlation_matrix()
+        for row in cm:
+            print(row)
+
+        info('\n [======= Building report =======]')
+        rep = Report(self.args.output)
+
         up = np.zeros(expdata.y.shape[1])
         for i, nn in enumerate(nns):
             up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
 
-        rep = Report(self.args.output)
         rep.plot_data(expdata, runs.unscale_y(up), runs, best_x)
-        rep.plot_minimize(m, best_x, result[0], runs)
+        rep.plot_minimize(m, logger, best_x, result[0], best_std, runs)
 
         display_output['data_hists'] = len(expdata.plotinfo)
 
@@ -203,7 +218,6 @@ class App(object):
 
         """
         rep.plot_model(nn, runs, expdata)
-        rep.plot_minimize(m, best_x, result[0], runs)
         """
         success('\n [======= Minimize Completed =======]\n')
 

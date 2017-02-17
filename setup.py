@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open('README.md') as f:
     long_desc = f.read()
 
-setup(name= "mcnn",
+setup(name= "mcnntune",
       version = '0.1',
       description = "MC Neural Network Tunes",
       author = "S. Carrazza & S. Alioli",

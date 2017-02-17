@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block nav_data %}selected{% endblock %}
+{% block body %}
+<h1 class="page-title">Data/Model</h1>
+<div class="markdown-body">
+    <figure>
+        {% for n in range(data_hists) %}
+        <img src="plots/{{n}}_data.svg" alt="data">
+        {% endfor %}
+    </figure>
+</div>
+{% endblock %}

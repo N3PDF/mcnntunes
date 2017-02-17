@@ -7,14 +7,12 @@ Performs MC tunes using Neural Networks
 import os, yoda
 import matplotlib.pyplot as plt
 from tools import make_dir, show
-from mcnntunelib.templates.index import index
-from mcnntunelib.templates.raw import raw
-from mcnntunelib.templates.minimization import minimization
-from mcnntunelib.templates.model import model
-from mcnntunelib.templates.config import config
-from mcnntunelib.templates.data import data
-from jinja2 import Template
 import numpy as np
+from jinja2 import Environment, PackageLoader, select_autoescape
+env = Environment(
+    loader=PackageLoader('mcnntunelib', 'templates'),
+    autoescape=select_autoescape(['html'])
+)
 
 
 class Report(object):
@@ -24,45 +22,46 @@ class Report(object):
         make_dir('%s/plots' % self.path)
 
     def save(self, dictionary):
-        tmplindex = [('index', Template(index)),
-                     ('data', Template(data)),
-                     ('model', Template(model)),
-                     ('minimization', Template(minimization)),
-                     ('raw', Template(raw)),
-                     ('config', Template(config))]
 
-        for name, tmpl in tmplindex:
-            output = tmpl.render(dictionary)
-            with open('%s/%s.html' % (self.path, name), 'w') as f:
+        templates = ['index.html','data.html','model.html',
+                     'minimization.html','raw.html','config.html']
+
+        for item in templates:
+            template = env.get_template(item)
+            output = template.render(dictionary)
+            with open('%s/%s' % (self.path, item), 'w') as f:
                 f.write(output)
 
         show('\n- Generated report @ file://%s/%s/index.html' % (os.getcwd(), self.path))
 
-    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs):
+    def plot_minimize(self, minimizer, logger, best_x_unscaled, best_x_scaled, best_error, runs):
         """"""
-        #minimizer.es.plot()
-        #plt.savefig('%s/plots/minimizer.svg' % self.path)
+        logger.es.plot()
+        plt.savefig('%s/plots/minimizer.png' % self.path)
 
         # plot 1d profiles
+        N = 20 # points
         for dim in range(runs.x_scaled.shape[1]):
-            d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), 30)
-            res = []
-            xx = []
-            for p in d:
+            d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
+            res = np.zeros(N)
+            xx = np.zeros(N)
+            for i, p in enumerate(d):
                 a = np.array(best_x_scaled)
                 a[dim] = p
-                chi2 = minimizer.chi2(a)
-                res.append(chi2)
-                xx.append(runs.unscale_x(a)[dim])
+                res[i] = minimizer.chi2(a)
+                xx[i] = runs.unscale_x(a)[dim]
             plt.figure()
             plt.plot(xx, res, label='parameter variation', linewidth=2)
             plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
+            plt.axvline(best_x_unscaled[dim]+best_error[dim], linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
+            plt.axvline(best_x_unscaled[dim]-best_error[dim], linestyle='--', color='r', linewidth=2)
             plt.legend(loc='best')
             plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
             plt.ylabel('$\chi^2$/dof')
             plt.xlabel('parameter')
             plt.grid()
             plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
+            plt.close()
 
     def plot_model(self, model, runs, data):
         """"""

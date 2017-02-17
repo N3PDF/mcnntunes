@@ -35,12 +35,11 @@ class CMAES(object):
         print('  - centers: %f' % self.center)
         print('  - sigma: %f ' % self.sigma)
 
-        #self.es = cma.CMAEvolutionStrategy(center, sigma, opts)
-
     def chi2(self, x):
         prediction = np.zeros(self.truth.shape[0])
+        X = x.reshape(1,self.runs.x_scaled.shape[1])
         for i, model in enumerate(self.models):
-            prediction[i] = model.predict(x.reshape(1,self.runs.x_scaled.shape[1]))
+            prediction[i] = model.predict(X)
         prediction = self.runs.unscale_y(prediction)
         return np.mean(np.square((prediction-self.truth)/self.truth_error))
 
@@ -53,5 +52,3 @@ class CMAES(object):
                    restarts=0,
                    bipop=True)
         return res
-        #self.es.optimize(self.chi2)
-        #return self.es.result()
