@@ -135,6 +135,7 @@ class Report(object):
         plt.title('Relative error for MC runs vs Model predictions')
         plt.ylabel('Relative error (%)')
         plt.xlabel('bin')
+        plt.ylim([0, np.max(diffs+std)])
         plt.grid()
         plt.legend(loc='best')
         plt.savefig('%s/plots/errors.svg' % self.path)

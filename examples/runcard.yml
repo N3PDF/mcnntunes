@@ -36,4 +36,4 @@ model:
 ##############################
 minimizer:
   bounds: on
-  restarts: 0
+  restarts: 2

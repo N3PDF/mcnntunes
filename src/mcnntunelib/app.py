@@ -184,7 +184,6 @@ class App(object):
             display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
                                           'std': str('%e') % best_std[i]})
 
-        print result[-2].D
         # print correlation matrix
         show('\n- Correlation matrix:')
         corr = result[-2].correlation_matrix()

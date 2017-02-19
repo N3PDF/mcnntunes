@@ -16,15 +16,15 @@ class CMAES(object):
         """"""
         self.models = models
         self.truth = truth.y[0]
-        self.truth_error = truth.yerr[0]
+        self.truth_error2 = np.square(truth.yerr[0]) + np.square(np.mean(runs.yerr, axis=0))
         self.runs = runs
         self.output = output
         s0max = np.max(runs.x_scaled, axis=0).tolist()
         s0min = np.min(runs.x_scaled, axis=0).tolist()
         self.center = 0
-        self.sigma = 1
+        self.sigma = 0.1
 
-        self.opts = {'verb_filenameprefix': '%s/cma-' % output}
+        self.opts = {'verb_filenameprefix': '%s/cma-' % output, 'tolfunhist': 0.01}
         if useBounds:
             self.opts['bounds'] = [s0min, s0max]
 
@@ -42,7 +42,7 @@ class CMAES(object):
         for i, model in enumerate(self.models):
             prediction[i] = model.predict(X)
         prediction = self.runs.unscale_y(prediction)
-        return np.mean(np.square((prediction-self.truth)/self.truth_error))
+        return np.mean(np.square((prediction-self.truth))/self.truth_error2)
 
     def minimize(self, restarts):
         """"""
