@@ -152,6 +152,7 @@ class Report(object):
             rs = [item for item in runs.plotinfo if item['title'] == hist['title']]
             up = np.vstack([r['y'] for r in rs]).max(axis=0)
             dn = np.vstack([r['y'] for r in rs]).min(axis=0)
+            reperr = np.mean([r['yerr'] for r in rs], axis=0)
 
             plt.figure()
             plt.subplot(211)
@@ -185,7 +186,7 @@ class Report(object):
             hout.append(h)
 
             # calculate chi2
-            display[i+1]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y'])/hist['yerr'] ))
+            display[i+1]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y']) )/(np.square(hist['yerr'])+np.square(reperr) ))
 
             ifirst += size
 
