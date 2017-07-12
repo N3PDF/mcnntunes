@@ -29,7 +29,8 @@ class Data(object):
 
         if expData:
             tmp_yoda_histograms = dict(pair for d in yoda_histograms for pair in d.items())
-            yoda_histograms[0] = {}
+            yoda_histograms = []
+            yoda_histograms.append({})
             for key in tmp_yoda_histograms:
                 yoda_histograms[0][key[4:]] = tmp_yoda_histograms[key]
 
@@ -91,7 +92,7 @@ class Data(object):
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
                     if p.y == 0:
-                        error('Histogram %s has empty entries' % key)
+                        info('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
                                       'x': data_x,
                                       'y': data_y,
