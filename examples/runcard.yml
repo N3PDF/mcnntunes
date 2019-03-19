@@ -3,14 +3,17 @@
 #############################
 input:
   folders:
-    - theory_input
+    - theory_input_7params_0118
   patterns:
-    - '.*/ATLAS_2016_I1424838/d03-x01-y01'
+#    - '.*/ATLAS_2012_I1204784/d01-x01-y01'
+#    - '.*/ATLAS_2016_I1424838/d03-x01-y01'
 #    - '.*/ATLAS_2016_I1424838/d03-x01-y02'
+    - '.*/ATLAS_2013_I1230812/d01-x01-y01'
+    
   unpatterns:
     - 'None'
   expfiles:
-    - 'data/ATLAS_2016_I1424838.yoda'
+    - '/usr/local/share/Rivet/ATLAS_2013_I1230812.yoda'
   #weight_bins: off TODO
 
 #############################
