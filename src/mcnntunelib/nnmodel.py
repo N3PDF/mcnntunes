@@ -6,7 +6,7 @@ Performs MC tunes using Neural Networks
 
 import pickle, h5py
 import numpy as np
-from tools import show
+from .tools import show
 from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.models import load_model
@@ -25,7 +25,7 @@ def build_model(input_dim=None, output_dim=1,
     actfun = [actfunction for l in range(len(architecture))] + ['linear']
 
     for l in range(len(nsizes) - 1):
-        model.add(Dense(output_dim=nsizes[l + 1], input_dim=nsizes[l], init=init, activation=actfun[l]))
+        model.add(Dense(units=nsizes[l + 1], input_dim=nsizes[l], kernel_initializer=init, activation=actfun[l]))
 
     model.compile(loss=loss, optimizer=optimizer)
     return model
@@ -51,7 +51,7 @@ class NNModel(object):
                                  setup['optimizer'], 'mse',
                                  setup['architecture'], setup['actfunction'])
 
-        h = self.model.fit(x, y, nb_epoch=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
+        h = self.model.fit(x, y, epochs=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
         self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
         show('\n- Final loss function: %f' % self.loss[-1])
 

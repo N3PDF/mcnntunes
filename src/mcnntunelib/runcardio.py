@@ -5,7 +5,7 @@ Performs MC tunes using Neural Networks
 """
 
 import yaml, glob
-from tools import show, error
+from .tools import show, error
 
 class ConfigError(ValueError): pass
 

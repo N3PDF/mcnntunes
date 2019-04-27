@@ -6,7 +6,7 @@ Performs MC tunes using Neural Networks
 
 import yoda, pickle
 import numpy as np
-from tools import error, show, info
+from .tools import error, show, info
 
 
 class Data(object):

@@ -6,7 +6,7 @@ Performs MC tunes using Neural Networks
 
 import os, yoda
 import matplotlib.pyplot as plt
-from tools import make_dir, show
+from .tools import make_dir, show
 import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape
 
@@ -192,7 +192,7 @@ class Report(object):
 
         yoda_path = '%s/best_model.yoda' % self.path
         show('\n- Exporting YODA file with predictions in %s' % yoda_path)
-        yoda.writeYODA(hout, yoda_path)
+        yoda.write(hout, yoda_path)
 
     def plot_correlations(self, corr):
         """"""
