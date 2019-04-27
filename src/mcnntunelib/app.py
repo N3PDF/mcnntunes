@@ -6,12 +6,12 @@ Performs MC tunes using Neural Networks
 
 import time, pickle
 import argparse, shutil, filecmp, logging
-from runcardio import Config
-from yodaio import Data
-from nnmodel import NNModel
-from minimizer import CMAES
-from report import Report
-from tools import make_dir, show, info, success, error, __version__, __author__
+from .runcardio import Config
+from .yodaio import Data
+from .nnmodel import NNModel
+from .minimizer import CMAES
+from .report import Report
+from .tools import make_dir, show, info, success, error, __version__, __author__
 import numpy as np
 
 
@@ -189,7 +189,7 @@ class App(object):
         show('\n- Correlation matrix:')
         corr = result[-2].correlation_matrix()
         for row in corr:
-            print(row)
+            show(row)
 
         # propose eigenvectors
         cov = np.zeros(shape=(len(corr),len(corr)))
