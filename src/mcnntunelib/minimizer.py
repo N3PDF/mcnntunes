@@ -42,6 +42,14 @@ class CMAES(object):
         for i, model in enumerate(self.models):
             prediction[i] = model.predict(X)
         prediction = self.runs.unscale_y(prediction)
+        return np.mean(np.square(self.runs.y_weight*(prediction-self.truth))/self.truth_error2)
+
+    def unweighted_chi2(self, x):
+        prediction = np.zeros(self.truth.shape[0])
+        X = x.reshape(1,self.runs.x_scaled.shape[1])
+        for i, model in enumerate(self.models):
+            prediction[i] = model.predict(X)
+        prediction = self.runs.unscale_y(prediction)
         return np.mean(np.square((prediction-self.truth))/self.truth_error2)
 
     def minimize(self, restarts):

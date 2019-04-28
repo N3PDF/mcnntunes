@@ -72,13 +72,16 @@ class App(object):
         """Prepare and describe MC input data"""
         info('\n [======= Preprocess mode =======]')
 
+        # Print bins weighting
+        self.config.print_weightrules()
+
         # search for yoda files
         self.config.discover_yodas()
 
         info('\n [======= Loading MC data =======]')
 
         # open yoda files
-        runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns)
+        runs = Data(self.config.yodafiles, self.config.patterns, self.config.unpatterns, self.config.weightrules)
 
         # saving data to file
         runs.save(self.RUNS_DATA % self.args.output)
@@ -86,7 +89,7 @@ class App(object):
         info('\n [======= Loading experimental data =======]')
 
         # loading experimental data
-        expdata = Data(self.config.expfiles, self.config.patterns, self.config.unpatterns, expData=True)
+        expdata = Data(self.config.expfiles, self.config.patterns, self.config.unpatterns, self.config.weightrules, expData=True)
 
         # save to disk
         expdata.save(self.EXP_DATA % self.args.output)
@@ -117,6 +120,28 @@ class App(object):
             ifirst += size
             show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
             summary.append({'name': distribution['title'], 'min': np.min(chi2), 'mean': np.mean(chi2)})
+
+        # print weighted chi2 to MC
+        if self.config.use_weights:
+            info('\n [======= Weighted Chi2 Data-MC =======]')
+
+            # total chi2
+            chi2 = []
+            for rep in range(runs.y.shape[0]):
+                chi2.append(np.mean(np.square(runs.y_weight*(runs.y[rep]-expdata.y))/(np.square(expdata.yerr)+np.square(runs.yerr[rep]))))
+            show('\n Total best weighted chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
+            summary.append({'name': 'TOTAL (weighted)', 'min': np.min(chi2), 'mean': np.mean(chi2)})
+
+            ifirst = 0
+            for distribution in expdata.plotinfo:
+                size = len(distribution['y'])
+                chi2 = []
+                for rep in range(runs.y.shape[0]):
+                    chi2.append(np.mean(np.square(distribution['weight']*(runs.y[rep][ifirst:ifirst + size] - distribution['y'])) /
+                                    (np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])) ))
+                ifirst += size
+                show(' |- %s (weighted): %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
+                summary.append({'name': distribution['title']+" (weighted)", 'min': np.min(chi2), 'mean': np.mean(chi2)})
 
         pickle.dump(summary, open('%s/data/summary.p' % self.args.output, 'wb'))
 
@@ -176,14 +201,14 @@ class App(object):
         best_std = result[6] * runs.x_std
 
         info('\n [======= Result Summary =======]')
-        show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
-
-        display_output = {'results': [], 'version': __version__,
-                          'chi2': result[1], 'dof': len(expdata.y[0])}
+        
+        # print best parameters
+        if self.config.use_weights:
+            show('\n- Suggested best parameters for (weighted) chi2/dof = %.6f' % result[1])
+        else:
+            show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
-            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
-                                          'std': str('%e') % best_std[i]})
 
         # print correlation matrix
         show('\n- Correlation matrix:')
@@ -203,25 +228,48 @@ class App(object):
             show(runs.unscale_x(rep))
 
         info('\n [======= Building report =======]')
-        rep = Report(self.args.output)
-        rep.plot_correlations(corr)
 
+        # Start building the report
+        rep = Report(self.args.output)
+        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0])}
+
+        # Add best parameters
+        for i, p in enumerate(runs.params):
+            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
+                                                'std': str('%e') % best_std[i]})
+
+        # Add chi2
+        if self.config.use_weights:
+            display_output['weighted_chi2'] = result[1]
+            display_output['unweighted_chi2'] = m.unweighted_chi2(result[0])
+        else:
+            display_output['unweighted_chi2'] = result[1]
+        display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
+        for i, element in enumerate(display_output['summary']):
+            if element['name'] == 'TOTAL':
+                display_output['summary'][i]['model'] = display_output['unweighted_chi2']
+            elif element['name'] == 'TOTAL (weighted)':
+                display_output['summary'][i]['model'] = display_output['weighted_chi2']
+
+        # Calculate prediction with best parameters (using nn model)
         up = np.zeros(expdata.y.shape[1])
         for i, nn in enumerate(nns):
             up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
 
-        display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
-        display_output['summary'][0]['model'] = result[1]
-
+        # Make all plots needed in the report
+        rep.plot_correlations(corr)
         rep.plot_data(expdata, runs.unscale_y(up), runs, best_x, display_output['summary'])
-        rep.plot_minimize(m, logger, best_x, result[0], best_std, runs)
+        rep.plot_minimize(m, logger, best_x, result[0], best_std, runs, self.config.use_weights)
         display_output['avg_loss'] = rep.plot_model(nns, runs, expdata)
 
+        # Add number of data-model plots
         display_output['data_hists'] = len(expdata.plotinfo)
-        with open('%s/logs/minimize.log' % self.args.output, 'rb') as f:
+
+        with open('%s/logs/minimize.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()
-        with open('%s/runcard.yml' % self.args.output, 'rb') as f:
+        with open('%s/runcard.yml' % self.args.output, 'r') as f:
             display_output['configuration'] = f.read()
+
         rep.save(display_output)
 
         success('\n [======= Minimize Completed =======]\n')

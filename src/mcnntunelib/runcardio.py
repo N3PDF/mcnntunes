@@ -19,6 +19,44 @@ class Config(object):
         self.patterns = self.get('input', 'patterns')
         self.unpatterns = self.get('input', 'unpatterns')
         self.expfiles = self.get('input', 'expfiles')
+
+        # Load and parse weight rules
+        self.use_weights = False
+        self.weightrules = []
+        for rule in self.get('input', 'weightrules'):
+            try:
+                pattern = rule['pattern']
+                weight = rule['weight']
+                
+                # Analyze the condition
+                condition = rule['condition']
+                if isinstance(condition, int):
+                    condition_type = 'bin_index'
+                    if condition < 1:
+                        error("Error: invalid bin index (use only integers > 0)")
+                elif len(condition)==2:
+                    condition_type = 'interval'
+                    for endpoint in condition:
+                        if isinstance(endpoint, str):
+                            if (endpoint != '+inf') and (endpoint != '-inf'):
+                                error("Error: unrecognised endpoint (use only numbers, '-inf' or '+inf')")
+                else:
+                    error('Error: unrecognised condition format.')
+                
+                # Build the right condition format
+                if condition_type == 'bin_index':
+                    ruledict = {'pattern': pattern, 'condition_type': condition_type,
+                    'bin_index': condition, 'weight': weight}
+                else:
+                    ruledict = {'pattern': pattern, 'condition_type': condition_type,
+                    'left_endpoint': condition[0], 'right_endpoint': condition[1], 'weight': weight}
+
+            except:
+                error('Error: unrecognised weight rule format.')
+            self.weightrules.append(ruledict)
+        if len(self.weightrules) != 0:
+            self.use_weights = True
+
         self.seed = self.get('model', 'seed')
         self.scan = self.get('model', 'scan')
         if not self.scan:
@@ -50,6 +88,26 @@ class Config(object):
             return self.content[node][key]
         except:
             error('Error key "%s" not found in node "%s"' % (key, node))
+
+    def print_weightrules(self):
+        """Print a nice summary of all weight rules"""
+        show('\n- Checking for weight modifiers...')
+
+        if len(self.weightrules) == 0:
+            show('- No weight modifiers, all weights are set to 1.')
+        else:
+            show('  Detected %d modifiers:' % len(self.weightrules))
+            for i, rule in enumerate(self.weightrules):
+                    show('  ==] Rule %d:' % (i+1))
+                    show('        Pattern: %s' % rule['pattern'])
+                    if rule['condition_type'] == 'bin_index':
+                        show('        Bin index: %d' % rule['bin_index'])
+                    else:
+                        left_endpoint = rule['left_endpoint']
+                        right_endpoint = rule['right_endpoint']
+                        show(f'        Left endpoint: {left_endpoint}')
+                        show(f'        Right endpoint: {right_endpoint}')
+                    show('        Weight: %f' % rule['weight'])
 
     @classmethod
     def from_yaml(cls, stream):
