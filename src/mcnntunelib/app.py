@@ -128,7 +128,8 @@ class App(object):
             # total chi2
             chi2 = []
             for rep in range(runs.y.shape[0]):
-                chi2.append(np.mean(np.square(runs.y_weight*(runs.y[rep]-expdata.y))/(np.square(expdata.yerr)+np.square(runs.yerr[rep]))))
+                chi2.append(np.sum(np.square(runs.y_weight*(runs.y[rep]-expdata.y))/(np.square(expdata.yerr)+np.square(runs.yerr[rep])))
+                                    /runs.weighted_dof)
             show('\n Total best weighted chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
             summary.append({'name': 'TOTAL (weighted)', 'min': np.min(chi2), 'mean': np.mean(chi2)})
 
@@ -137,8 +138,8 @@ class App(object):
                 size = len(distribution['y'])
                 chi2 = []
                 for rep in range(runs.y.shape[0]):
-                    chi2.append(np.mean(np.square(distribution['weight']*(runs.y[rep][ifirst:ifirst + size] - distribution['y'])) /
-                                    (np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])) ))
+                    chi2.append(np.sum(np.square(distribution['weight']*(runs.y[rep][ifirst:ifirst + size] - distribution['y'])) /
+                                    (np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])) ) / distribution['weighted_dof'])
                 ifirst += size
                 show(' |- %s (weighted): %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
                 summary.append({'name': distribution['title']+" (weighted)", 'min': np.min(chi2), 'mean': np.mean(chi2)})
@@ -231,7 +232,7 @@ class App(object):
 
         # Start building the report
         rep = Report(self.args.output)
-        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0])}
+        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0]), 'weighted_dof': runs.weighted_dof}
 
         # Add best parameters
         for i, p in enumerate(runs.params):

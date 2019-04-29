@@ -195,9 +195,11 @@ class Report(object):
             # calculate chi2
             for j, element in enumerate(display):
                 if element['name'] == hist['title']: 
-                    display[j]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y']) )/(np.square(hist['yerr'])+np.square(reperr) ))
+                    display[j]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y']) )
+                                            /(np.square(hist['yerr'])+np.square(reperr) ))
                 elif element['name'] == hist['title']+" (weighted)":
-                    display[j]['model'] = np.mean(np.square( hist['weight']*(predictions[ifirst:ifirst+size]-hist['y']) )/(np.square(hist['yerr'])+np.square(reperr) ))
+                    display[j]['model'] = np.sum(np.square( hist['weight']*(predictions[ifirst:ifirst+size]-hist['y']) )
+                                            /(np.square(hist['yerr'])+np.square(reperr) )) / hist['weighted_dof']
 
 
             ifirst += size

@@ -23,7 +23,10 @@ class Config(object):
         # Load and parse weight rules
         self.use_weights = False
         self.weightrules = []
-        for rule in self.get('input', 'weightrules'):
+        weightrules_list = self.get('input', 'weightrules')
+        if weightrules_list == None:
+            weightrules_list = []
+        for rule in weightrules_list:
             try:
                 pattern = rule['pattern']
                 weight = rule['weight']
@@ -94,7 +97,7 @@ class Config(object):
         show('\n- Checking for weight modifiers...')
 
         if len(self.weightrules) == 0:
-            show('- No weight modifiers, all weights are set to 1.')
+            show('  No weight modifiers, all weights are set to 1.')
         else:
             show('  Detected %d modifiers:' % len(self.weightrules))
             for i, rule in enumerate(self.weightrules):
@@ -107,7 +110,7 @@ class Config(object):
                         right_endpoint = rule['right_endpoint']
                         show(f'        Left endpoint: {left_endpoint}')
                         show(f'        Right endpoint: {right_endpoint}')
-                    show('        Weight: %f' % rule['weight'])
+                    show('        Weight: %.2f' % rule['weight'])
 
     @classmethod
     def from_yaml(cls, stream):

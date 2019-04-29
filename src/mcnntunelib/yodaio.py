@@ -84,6 +84,7 @@ class Data(object):
                 data_y = np.zeros(len(h.points))
                 data_yerr = np.zeros(len(h.points))
                 data_weight = np.zeros(len(h.points))
+                data_weighted_dof = 0
                 for t, p in enumerate(h.points):
                     self.y[i,index] = p.y
                     self.yerr[i,index] = p.yErrAvg
@@ -96,6 +97,8 @@ class Data(object):
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
                     data_weight[t] = self.get_weight(key,weightrules,t+1,p.x)
+                    if data_weight[t] != 0: # Exclude zero-weighted bins in dof calc
+                        data_weighted_dof += 1
                     if p.y == 0:
                         info('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
@@ -104,8 +107,17 @@ class Data(object):
                                       'yerr': data_yerr,
                                       'xerr-': data_xerrm,
                                       'xerr+': data_xerrp,
-                                      'weight': data_weight})
+                                      'weight': data_weight,
+                                      'weighted_dof': data_weighted_dof})
         show('\n- Data loaded successfully')
+
+        # Calculate dof
+        self.weighted_dof = 0
+        for weight in self.y_weight:
+            if weight != 0:
+                self.weighted_dof += 1
+        if self.weighted_dof == 0: # just in case
+            error('Error: minimizing over 0 bins.')
 
         if not expData:
             self.x_mean = np.mean(self.x, axis=0)
@@ -153,34 +165,38 @@ class Data(object):
                     if rule['bin_index'] == bin:
                         weight = rule['weight']
                         if verbose:
-                            show('  ==] Set weight of bin %d of histogram %s to %f' % (bin, pattern, weight))
+                            show('  ==] Set weight of bin %d of histogram %s to %0.2f' % (bin, pattern, weight))
 
                 # In case of interval
                 elif rule['condition_type'] == 'interval':
                     if (rule['left_endpoint'] == '-inf') and (rule['right_endpoint'] == '+inf'):
                         weight = rule['weight']
                         if verbose:
-                            show('  ==] Set weight of bin %d of histogram %s to %f' % (bin, pattern, weight))
+                            show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
                     elif (rule['left_endpoint'] == '-inf') and (rule['right_endpoint'] == '-inf'):
                         return weight # do nothing
                     elif (rule['left_endpoint'] == '+inf') and (rule['right_endpoint'] == '+inf'):
                         return weight # do nothing
                     elif (rule['left_endpoint'] == '+inf') and (rule['right_endpoint'] == '-inf'):
                         return weight # do nothing
+                    elif rule['left_endpoint'] == '+inf':
+                        return weight # do nothing
+                    elif rule['right_endpoint'] == '-inf':
+                        return weight # do nothing
                     elif rule['left_endpoint'] == '-inf':
                         if x_bin <= rule['right_endpoint']:
                             weight = rule['weight']
                             if verbose:
-                                show('  ==] Set weight of bin %d of histogram %s to %f' % (bin, pattern, weight))
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
                     elif rule['right_endpoint'] == '+inf':
                         if x_bin >= rule['left_endpoint']:
                             weight = rule['weight']
                             if verbose:
-                                show('  ==] Set weight of bin %d of histogram %s to %f' % (bin, pattern, weight))
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
                     elif (x_bin >= rule['left_endpoint']) and (x_bin <= rule['right_endpoint']):
                             weight = rule['weight']
                             if verbose:
-                                show('  ==] Set weight of bin %d of histogram %s to %f' % (bin, pattern, weight))
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
 
         return weight
 
