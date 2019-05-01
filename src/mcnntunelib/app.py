@@ -108,7 +108,6 @@ class App(object):
         chi2 = []
         for rep in range(runs.y.shape[0]):
             chi2.append(stats.chi2(runs.y[rep], expdata.y, np.square(expdata.yerr)+np.square(runs.yerr[rep])))
-            #chi2.append(np.mean(np.square((runs.y[rep]-expdata.y))/(np.square(expdata.yerr)+np.square(runs.yerr[rep]))))
         show('\n Total best chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
         summary.append({'name': 'TOTAL', 'min': np.min(chi2), 'mean': np.mean(chi2)})
 
@@ -119,8 +118,6 @@ class App(object):
             for rep in range(runs.y.shape[0]):
                 chi2.append(stats.chi2(runs.y[rep][ifirst:ifirst + size], distribution['y'],
                             np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])))
-                #chi2.append(np.mean(np.square((runs.y[rep][ifirst:ifirst + size] - distribution['y'])) / 
-                                    #(np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])) ))
             ifirst += size
             show(' |- %s: %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
             summary.append({'name': distribution['title'], 'min': np.min(chi2), 'mean': np.mean(chi2)})
@@ -133,8 +130,6 @@ class App(object):
             chi2 = []
             for rep in range(runs.y.shape[0]):
                 chi2.append(stats.chi2(runs.y[rep], expdata.y, np.square(expdata.yerr)+np.square(runs.yerr[rep]), weights=runs.y_weight))
-                #chi2.append(np.sum(np.square(runs.y_weight*(runs.y[rep]-expdata.y))/(np.square(expdata.yerr)+np.square(runs.yerr[rep])))
-                                    #/runs.weighted_dof)
             show('\n Total best weighted chi2/dof: %.2f (@%d) avg=%.2f' % (np.min(chi2), np.argmin(chi2), np.mean(chi2)))
             summary.append({'name': 'TOTAL (weighted)', 'min': np.min(chi2), 'mean': np.mean(chi2)})
 
@@ -146,8 +141,6 @@ class App(object):
                     chi2.append(stats.chi2(runs.y[rep][ifirst:ifirst + size], distribution['y'],
                                 np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size]),
                                 weights=distribution['weight']))
-                    #chi2.append(np.sum(np.square(distribution['weight']*(runs.y[rep][ifirst:ifirst + size] - distribution['y'])) /
-                                    #(np.square(distribution['yerr'])+np.square(runs.yerr[rep][ifirst:ifirst + size])) ) / distribution['weighted_dof'])
                 ifirst += size
                 show(' |- %s (weighted): %.2f (@%d) avg=%.2f' % (distribution['title'], np.min(chi2), np.argmin(chi2), np.mean(chi2)))
                 summary.append({'name': distribution['title']+" (weighted)", 'min': np.min(chi2), 'mean': np.mean(chi2)})

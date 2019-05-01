@@ -84,7 +84,6 @@ class Data(object):
                 data_y = np.zeros(len(h.points))
                 data_yerr = np.zeros(len(h.points))
                 data_weight = np.zeros(len(h.points))
-                #data_weighted_dof = 0
                 for t, p in enumerate(h.points):
                     self.y[i,index] = p.y
                     self.yerr[i,index] = p.yErrAvg
@@ -97,8 +96,6 @@ class Data(object):
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
                     data_weight[t] = self.get_weight(key,weightrules,t+1,p.x)
-                    #if data_weight[t] != 0: # Exclude zero-weighted bins in dof calc
-                        #data_weighted_dof += 1
                     if p.y == 0:
                         info('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
@@ -108,7 +105,6 @@ class Data(object):
                                       'xerr-': data_xerrm,
                                       'xerr+': data_xerrp,
                                       'weight': data_weight})
-                                      #'weighted_dof': data_weighted_dof})
         show('\n- Data loaded successfully')
 
         # Calculate dof
