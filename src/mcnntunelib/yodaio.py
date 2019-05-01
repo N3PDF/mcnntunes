@@ -13,7 +13,7 @@ class Data(object):
 
     annotation_tag = 'Tune_Parameter'
 
-    def __init__(self, filenames, patterns, unpatterns, expData=False):
+    def __init__(self, filenames, patterns, unpatterns, weightrules, expData=False):
         """the data container"""
         self.expData = expData
 
@@ -67,6 +67,7 @@ class Data(object):
 
         self.y = np.zeros(shape=(entries, output_size))
         self.yerr = np.zeros(shape=(entries, output_size))
+        self.y_weight = np.zeros(output_size) #array of weights
 
         # load data from files
         self.plotinfo = []
@@ -82,15 +83,19 @@ class Data(object):
                 data_xerrp = np.zeros(len(h.points))
                 data_y = np.zeros(len(h.points))
                 data_yerr = np.zeros(len(h.points))
+                data_weight = np.zeros(len(h.points))
                 for t, p in enumerate(h.points):
                     self.y[i,index] = p.y
                     self.yerr[i,index] = p.yErrAvg
+                    if i==0: # Need just one run
+                        self.y_weight[index] = self.get_weight(key,weightrules,t+1,p.x, verbose=True)
                     index += 1
                     data_x[t] = p.x
                     data_xerrm[t] = p.xErrs[0]
                     data_xerrp[t] = p.xErrs[1]
                     data_y[t] = p.y
                     data_yerr[t] = p.yErrAvg
+                    data_weight[t] = self.get_weight(key,weightrules,t+1,p.x)
                     if p.y == 0:
                         info('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
@@ -98,8 +103,17 @@ class Data(object):
                                       'y': data_y,
                                       'yerr': data_yerr,
                                       'xerr-': data_xerrm,
-                                      'xerr+': data_xerrp})
+                                      'xerr+': data_xerrp,
+                                      'weight': data_weight})
         show('\n- Data loaded successfully')
+
+        # Calculate dof
+        self.weighted_dof = 0
+        for weight in self.y_weight:
+            if weight != 0:
+                self.weighted_dof += 1
+        if self.weighted_dof == 0: # just in case
+            error('Error: minimizing over 0 bins.')
 
         if not expData:
             self.x_mean = np.mean(self.x, axis=0)
@@ -134,6 +148,53 @@ class Data(object):
         """"""
         pickle.dump(self, open(path, 'wb'))
         show('\n- Data saved in %s' % path)
+
+    def get_weight(self, pattern, weightrules, bin, x_bin, verbose=False):
+        """Check all weight rules to see if one corresponds to
+        that bin. If not, sets the weight to 1."""
+        weight = 1 # default weight
+        for rule in weightrules:
+            if rule['pattern'] == pattern:
+
+                # In case of bin index
+                if rule['condition_type'] == 'bin_index':
+                    if rule['bin_index'] == bin:
+                        weight = rule['weight']
+                        if verbose:
+                            show('  ==] Set weight of bin %d of histogram %s to %0.2f' % (bin, pattern, weight))
+
+                # In case of interval
+                elif rule['condition_type'] == 'interval':
+                    if (rule['left_endpoint'] == '-inf') and (rule['right_endpoint'] == '+inf'):
+                        weight = rule['weight']
+                        if verbose:
+                            show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
+                    elif (rule['left_endpoint'] == '-inf') and (rule['right_endpoint'] == '-inf'):
+                        error('Error: Potentially unwanted [-inf,-inf] condition found in a weightrule.')
+                    elif (rule['left_endpoint'] == '+inf') and (rule['right_endpoint'] == '+inf'):
+                        error('Error: Potentially unwanted [+inf,+inf] condition found in a weightrule.')
+                    elif (rule['left_endpoint'] == '+inf') and (rule['right_endpoint'] == '-inf'):
+                        return weight # do nothing
+                    elif rule['left_endpoint'] == '+inf':
+                        return weight # do nothing
+                    elif rule['right_endpoint'] == '-inf':
+                        return weight # do nothing
+                    elif rule['left_endpoint'] == '-inf':
+                        if x_bin <= rule['right_endpoint']:
+                            weight = rule['weight']
+                            if verbose:
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
+                    elif rule['right_endpoint'] == '+inf':
+                        if x_bin >= rule['left_endpoint']:
+                            weight = rule['weight']
+                            if verbose:
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
+                    elif (x_bin >= rule['left_endpoint']) and (x_bin <= rule['right_endpoint']):
+                            weight = rule['weight']
+                            if verbose:
+                                show('  ==] Set weight of bin %d of histogram %s to %.2f' % (bin, pattern, weight))
+
+        return weight
 
     @classmethod
     def load(cls, stream):

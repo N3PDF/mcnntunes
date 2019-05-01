@@ -14,7 +14,6 @@ input:
     - 'None'
   expfiles:
     - '/usr/local/share/Rivet/ATLAS_2013_I1230812.yoda'
-  #weight_bins: off TODO
 
 #############################
 model:

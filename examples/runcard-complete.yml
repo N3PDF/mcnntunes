@@ -134,7 +134,6 @@ input:
     - '/usr/local/share/Rivet/CMS_2013_I1209721.yoda'
     - '/usr/local/share/Rivet/CMS_2013_I1224539_ZJET.yoda'
     - '/usr/local/share/Rivet/LHCB_2012_I1208102.yoda'
-  weight_bins: off
 
 #############################
 model:

@@ -4,7 +4,12 @@
 <h1 class="page-title">Minimization</h1>
 <div class="markdown-body">
 
-    <p>Final chi2/dof: {{chi2}} (dof={{dof}})</p>
+    {% if weighted_chi2 is defined %}
+        <p>Final (weighted) chi2/dof: {{weighted_chi2}} (dof={{weighted_dof}})<br>
+        Final chi2/dof: {{unweighted_chi2}} (dof={{dof}})</p>
+    {% else %}
+        <p>Final chi2/dof: {{unweighted_chi2}} (dof={{dof}})</p>
+    {% endif %}
 
     <h2>Profiles</h2>
 

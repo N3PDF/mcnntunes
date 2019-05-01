@@ -10,7 +10,6 @@ input:
     - 'None'
   expfiles:
     - 'data/ATLAS_2016_I1424838.yoda'
-  weight_bins: off
 
 #############################
 model:
