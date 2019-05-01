@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from .tools import make_dir, show
 import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape
+import mcnntunelib.stats as stats
 
 class Report(object):
 
@@ -195,11 +196,15 @@ class Report(object):
             # calculate chi2
             for j, element in enumerate(display):
                 if element['name'] == hist['title']: 
-                    display[j]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y']) )
-                                            /(np.square(hist['yerr'])+np.square(reperr) ))
+                    display[j]['model'] = stats.chi2(predictions[ifirst:ifirst+size], hist['y'],
+                                                    np.square(hist['yerr'])+np.square(reperr))
+                    #display[j]['model'] = np.mean(np.square( (predictions[ifirst:ifirst+size]-hist['y']) )
+                                            #/(np.square(hist['yerr'])+np.square(reperr) ))
                 elif element['name'] == hist['title']+" (weighted)":
-                    display[j]['model'] = np.sum(np.square( hist['weight']*(predictions[ifirst:ifirst+size]-hist['y']) )
-                                            /(np.square(hist['yerr'])+np.square(reperr) )) / hist['weighted_dof']
+                    display[j]['model'] = stats.chi2(predictions[ifirst:ifirst+size], hist['y'],
+                                                    np.square(hist['yerr'])+np.square(reperr), weights=hist['weight'])
+                    #display[j]['model'] = np.sum(np.square( hist['weight']*(predictions[ifirst:ifirst+size]-hist['y']) )
+                                            #/(np.square(hist['yerr'])+np.square(reperr) )) / hist['weighted_dof']
 
 
             ifirst += size

@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import numpy as np
 from cma import fmin
+import mcnntunelib.stats as stats
 
 
 class CMAES(object):
@@ -42,7 +43,8 @@ class CMAES(object):
         for i, model in enumerate(self.models):
             prediction[i] = model.predict(X)
         prediction = self.runs.unscale_y(prediction)
-        return np.sum(np.square(self.runs.y_weight*(prediction-self.truth))/self.truth_error2)/self.runs.weighted_dof
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight)
+        #return np.sum(np.square(self.runs.y_weight*(prediction-self.truth))/self.truth_error2)/self.runs.weighted_dof
 
     def unweighted_chi2(self, x):
         prediction = np.zeros(self.truth.shape[0])
@@ -50,7 +52,8 @@ class CMAES(object):
         for i, model in enumerate(self.models):
             prediction[i] = model.predict(X)
         prediction = self.runs.unscale_y(prediction)
-        return np.mean(np.square((prediction-self.truth))/self.truth_error2)
+        return stats.chi2(prediction, self.truth, self.truth_error2)
+        #return np.mean(np.square((prediction-self.truth))/self.truth_error2)
 
     def minimize(self, restarts):
         """"""
