@@ -1,0 +1,10 @@
+# REFERENCE TUNE AZ PYTHIA8 (PROFESSOR)
+# Weightfile for performing the tune using the
+# phi_eta^star measurements
+# with the same setup as arXiv:1406.3660.
+
+/ATLAS_2012_I1204784/d02-x01-y01@0:0.29 1
+/ATLAS_2012_I1204784/d02-x01-y01@0.29 0
+/ATLAS_2012_I1204784/d02-x01-y02@0:0.29 1
+/ATLAS_2012_I1204784/d02-x01-y02@0.29 0
+

@@ -1,0 +1,11 @@
+# REFERENCE TUNE AZ PYTHIA8 (PROFESSOR)
+# Weightfile for performing the tune using the ptZ
+# measurement (muon channel) and the phi_eta^star
+# measurement (electron channel), searching for an AZ-like
+# tune (arXiv:1406.3660).
+
+/ATLAS_2012_I1204784/d02-x01-y01@0:0.29 1
+/ATLAS_2012_I1204784/d02-x01-y01@0.29 0
+/ATLAS_2014_I1300647/d01-x01-y02@0:26 1
+/ATLAS_2014_I1300647/d01-x01-y02@26 0
+

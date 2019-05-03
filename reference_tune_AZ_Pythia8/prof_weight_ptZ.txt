@@ -1,0 +1,10 @@
+# REFERENCE TUNE AZ PYTHIA8 (PROFESSOR)
+# Weightfile for performing the tune using the
+# ptZ measurements
+# with the same setup as arXiv:1406.3660.
+
+/ATLAS_2014_I1300647/d01-x01-y01@0:26 1
+/ATLAS_2014_I1300647/d01-x01-y01@26 0
+/ATLAS_2014_I1300647/d01-x01-y02@0:26 1
+/ATLAS_2014_I1300647/d01-x01-y02@26 0
+
