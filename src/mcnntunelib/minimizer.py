@@ -13,11 +13,11 @@ import mcnntunelib.stats as stats
 
 class CMAES(object):
 
-    def __init__(self, models, truth, runs, useBounds = True, output='.'):
+    def __init__(self, models, truth, runs, useBounds = True, output='.', truth_index=0):
         """"""
         self.models = models
-        self.truth = truth.y[0]
-        self.truth_error2 = np.square(truth.yerr[0]) + np.square(np.mean(runs.yerr, axis=0))
+        self.truth = truth.y[truth_index]
+        self.truth_error2 = np.square(truth.yerr[truth_index]) + np.square(np.mean(runs.yerr, axis=0))
         self.runs = runs
         self.output = output
         s0max = np.max(runs.x_scaled, axis=0).tolist()

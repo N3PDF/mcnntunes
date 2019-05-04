@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block nav_benchmark %}selected{% endblock %}
+{% block body %}
+<h1 class="page-title">Benchmark results</h1>
+<div class="markdown-body">
+
+{% if benchmark_results is defined %}
+
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">Estimator</th>
+            <th scope="col">Value</th>
+            <th scope="col">Error</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Reduced chi2</td>
+            <td>{{benchmark_results.chi2}}</td>
+            <td>{{benchmark_results.chi2_error}}</td>
+        </tr>
+        <tr>
+            <td>Average relative difference</td>
+            <td>{{benchmark_results.average_relative_difference}}</td>
+            <td>{{benchmark_results.average_relative_difference_error}}</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Relative error vs parameter position</h2>
+    
+    {% for param in results %}
+    <figure>
+        <img src="plots/benchmark_{{param.name}}.svg" alt="Relative error vs {{param.name}} position">
+    </figure>
+    {% endfor %}
+
+    <h2>Single closure tests results</h2>
+
+    {% for closure_test in benchmark_results.single_closure_test_results %}
+    <p><b>Closure test {{loop.index}}:</b></p>
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Parameter</th>
+            <th scope="col">True value</th>
+            <th scope="col">Predicted value</th>
+            <th scope="col">Prediction error</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in closure_test.details %}
+        <tr>
+            <td>{{loop.index}}</td>
+            <td>{{row.params}}</td>
+            <td>{{row.true_params}}</td>
+            <td>{{row.predicted_params}}</td>
+            <td>{{row.errors}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p>Reduced chi2: {{closure_test.chi2}}<br>
+       Average relative difference: {{closure_test.average_relative_difference}}</p>
+    {% endfor %}
+
+{% else %}
+
+    <p>Benchmark mode disabled.</p>
+
+{% endif %}
+
+</div>
+{% endblock %}
