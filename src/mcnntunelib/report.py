@@ -239,9 +239,9 @@ class Report(object):
             # Plot
             plt.figure()
             plt.scatter(true_parameter, relative_error, color='k')
-            plt.title("Relative error on %s" % param_name)
-            plt.xlabel('param_name')
-            plt.ylabel('Relative difference (%%)')
+            plt.title("Relative difference on %s" % param_name)
+            plt.xlabel("%s" % param_name)
+            plt.ylabel('Relative difference (%)')
             plt.grid(True)
             plt.savefig('%s/plots/benchmark_%s.svg' % (self.path, param_name))
             plt.close()

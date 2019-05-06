@@ -67,9 +67,10 @@ def main(argv):
         errors = np.zeros(len(true_params))
         for j, key in enumerate(true_params):
             truth[j] = true_params[key]
-        for j, key in enumerate(params):
-            predicted[j] = params[key][0]    
-            errors[j] = params[key][1]    
+            for key2 in params:
+                if key == key2:
+                    predicted[j] = params[key][0]
+                    errors[j] = params[key][1]   
         chi2[i]=np.mean(np.square((truth - predicted)/errors))
         mean_relative_difference[i] = np.mean(np.abs((predicted - truth)/truth))*100
         
