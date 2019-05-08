@@ -236,12 +236,20 @@ class Report(object):
                 relative_error[index2] = abs((benchmark_results['single_closure_test_results'][index2]['details'][index1]['predicted_params']-
                                          true_parameter[index2]) / true_parameter[index2]) * 100
             
+            # Calculate mean value and std dev of the mean
+            mean_error = np.mean(relative_error)
+            mean_error_error = np.sqrt(np.var(relative_error)/relative_error.shape[0]) 
+
             # Plot
             plt.figure()
             plt.scatter(true_parameter, relative_error, color='k')
+            plt.axhline(mean_error, color='r', linewidth=2, label='Mean')
+            plt.axhline(mean_error+mean_error_error, color='r', linestyle='--', label='Std. dev. of the mean')
+            plt.axhline(mean_error-mean_error_error, color='r', linestyle='--')
             plt.title("Relative difference on %s" % param_name)
             plt.xlabel("%s" % param_name)
             plt.ylabel('Relative difference (%)')
             plt.grid(True)
+            plt.legend()
             plt.savefig('%s/plots/benchmark_%s.svg' % (self.path, param_name))
             plt.close()
