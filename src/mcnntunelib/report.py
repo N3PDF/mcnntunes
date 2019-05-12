@@ -25,7 +25,7 @@ class Report(object):
 
     def save(self, dictionary):
         """"""
-        templates = ['index.html','data.html','model.html',
+        templates = ['index.html','data.html','model.html','benchmark.html',
                      'minimization.html','raw.html','config.html']
 
         for item in templates:
@@ -216,3 +216,40 @@ class Report(object):
         plt.colorbar()
         plt.savefig('%s/plots/correlations.svg' % self.path)
         plt.close()
+
+    def plot_benchmark(self, benchmark_results):
+        """"""
+        # Iterate over the number of parameters
+        for index1 in range(len(benchmark_results['single_closure_test_results'][0]['details'])):
+
+            # Get parameter name
+            param_name = benchmark_results['single_closure_test_results'][0]['details'][index1]['params']
+
+            true_parameter = np.zeros(len(benchmark_results['single_closure_test_results']))
+            relative_error = np.zeros(len(benchmark_results['single_closure_test_results']))
+
+            # Iterate over  the number of closure tests
+            for index2 in range(len(benchmark_results['single_closure_test_results'])):
+
+                # Calculate the relative error
+                true_parameter[index2] = benchmark_results['single_closure_test_results'][index2]['details'][index1]['true_params']
+                relative_error[index2] = abs((benchmark_results['single_closure_test_results'][index2]['details'][index1]['predicted_params']-
+                                         true_parameter[index2]) / true_parameter[index2]) * 100
+            
+            # Calculate mean value and std dev of the mean
+            mean_error = np.mean(relative_error)
+            mean_error_error = np.sqrt(np.var(relative_error)/relative_error.shape[0]) 
+
+            # Plot
+            plt.figure()
+            plt.scatter(true_parameter, relative_error, color='k')
+            plt.axhline(mean_error, color='r', linewidth=2, label='Mean')
+            plt.axhline(mean_error+mean_error_error, color='r', linestyle='--', label='Std. dev. of the mean')
+            plt.axhline(mean_error-mean_error_error, color='r', linestyle='--')
+            plt.title("Relative difference on %s" % param_name)
+            plt.xlabel("%s" % param_name)
+            plt.ylabel('Relative difference (%)')
+            plt.grid(True)
+            plt.legend()
+            plt.savefig('%s/plots/benchmark_%s.svg' % (self.path, param_name))
+            plt.close()

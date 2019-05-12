@@ -20,6 +20,7 @@ class App(object):
 
     RUNS_DATA = '%s/data/runs.p'
     EXP_DATA = '%s/data/expdata.p'
+    BENCHMARK_DATA = '%s/data/benchmark_data.p'
 
     def __init__(self):
         """reads the runcard and parse cmd arguments"""
@@ -32,6 +33,8 @@ class App(object):
             outfile = '%s/logs/preprocess.log' % self.args.output
         elif self.args.model:
             outfile = '%s/logs/model_bin_%s.log' % (self.args.output,self.args.bin)
+        elif self.args.benchmark:
+            outfile = '%s/logs/benchmark.log' % self.args.output
         else:
             outfile = '%s/logs/minimize.log' % self.args.output
 
@@ -64,6 +67,9 @@ class App(object):
         elif self.args.model:
             # perform fit per bin
             self.create_model()
+        elif self.args.benchmark:
+            # check procedure goodness
+            self.benchmark()
         else:
             self.minimize()
 
@@ -97,6 +103,16 @@ class App(object):
 
         if runs.y.shape[1] != expdata.y.shape[1]:
             raise error('Number of output mismatch between MC runs and data.')
+
+        # Prepare benchmark mode
+        if self.config.use_benchmark_data:
+            info('\n [======= Loading benchmark data =======]')
+
+            # Loading benchmark data
+            benchmark_data = Data(self.config.benchmark_yodafiles, self.config.patterns, self.config.unpatterns, self.config.weightrules, expData=False)
+
+            # Save to disk
+            benchmark_data.save(self.BENCHMARK_DATA % self.args.output)
 
         show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
 
@@ -178,7 +194,88 @@ class App(object):
         nn.save('%s/model_bin_%d/model.h5' % (self.args.output, bin))
         nn.plot('%s/model_bin_%d' % (self.args.output, bin), x, y)
 
-        success('\n [======= Minimize Completed =======]\n')
+        success('\n [======= Training Completed =======]\n')
+
+    def benchmark(self):
+        """
+        This program performs a closure test of the tuning procedure: for each MC run in the benchmark dataset,
+        it performs the Mcnntune tuning procedure using the MC run as the experimental data,
+        and then compares the estimated parameters with the ones used during the run generation.
+        """
+        
+        info('\n [======= Benchmark mode =======]')
+
+        if not self.config.use_benchmark_data:
+            error('Error: benchmark mode not enabled.\nTry loading some valid MC runs in the benchmark dataset.')
+
+        runs = Data.load(self.RUNS_DATA % self.args.output)
+
+        benchmark_data = Data.load(self.BENCHMARK_DATA % self.args.output)
+
+        nns = []
+        for bin in range(runs.y.shape[1]):
+            nn = NNModel()
+            nn.load('%s/model_bin_%d/model.h5' % (self.args.output, bin+1))
+            nns.append(nn)
+
+        benchmark_chi2 = np.zeros(benchmark_data.y.shape[0])
+        benchmark_mean_relative_difference = np.zeros(benchmark_data.y.shape[0])
+
+        benchmark_results = {}
+        benchmark_results['single_closure_test_results'] = []
+
+        make_dir('%s/benchmark' % self.args.output)
+
+        # Calculate best parameters for each benchmark run
+        for index in range(benchmark_data.y.shape[0]):
+            info('\n [======= Tuning benchmark run %d/%d  =======]' % (index+1, benchmark_data.y.shape[0]))
+            
+            # Minimize chi2
+            make_dir('%s/benchmark/closure_test_%d' % (self.args.output, index+1))
+            m = CMAES(nns, benchmark_data, runs, self.config.bounds, '%s/benchmark/closure_test_%d' % (self.args.output, index+1), truth_index=index)
+            result = m.minimize(self.config.restarts)
+
+            best_x = result[0] * runs.x_std + runs.x_mean
+            best_std = result[6] * runs.x_std
+
+            true_x = benchmark_data.x[index]
+
+            # Compare the results with the true parameters
+            benchmark_chi2[index] = stats.chi2(best_x,true_x,np.square(best_std))
+            benchmark_mean_relative_difference[index] = np.mean(np.abs((best_x - true_x) / true_x)) * 100
+
+            # Storing the results for later
+            closure_test_results = []
+            for parameter_index in range(runs.x.shape[1]):
+                closure_test_results.append({'params': runs.params[parameter_index], 'true_params': true_x[parameter_index],
+                                    'predicted_params': best_x[parameter_index], 'errors': best_std[parameter_index]})
+            benchmark_results['single_closure_test_results'].append({'details': closure_test_results,
+                                                                        'chi2': benchmark_chi2[index],
+                                                                        'average_relative_difference': benchmark_mean_relative_difference[index]})
+
+            # Printing the results
+            show("\n- {0:30} {1:30} {2:30} {3:30}".format("Params","True value","Predicted value","Error"))
+            for row in closure_test_results:
+                show("  {0:30} {1:30} {2:30} {3:30}".format(row['params'],row['true_params'],
+                                                                    row['predicted_params'],row['errors']))
+            show("\n- Average chi2/dof: %f" % benchmark_chi2[index])
+            show("\n- Average relative difference: %f %%" % benchmark_mean_relative_difference[index])
+
+        # Storing benchmark results
+        benchmark_results['chi2'] = np.mean(benchmark_chi2)
+        benchmark_results['chi2_error'] = np.sqrt(np.var(benchmark_chi2)/benchmark_chi2.shape[0])
+        benchmark_results['average_relative_difference'] = np.mean(benchmark_mean_relative_difference)
+        benchmark_results['average_relative_difference_error'] = np.sqrt(np.var(benchmark_mean_relative_difference) 
+                                                                        / benchmark_mean_relative_difference.shape[0])
+        pickle.dump(benchmark_results, open('%s/data/benchmark.p' % self.args.output, 'wb'))
+
+        # Printing benchmark results
+        show("\n##################################################\n")
+        show("\n- Total average chi2/dof: %f +- %f" % (benchmark_results['chi2'], benchmark_results['chi2_error']))
+        show("\n- Total average relative difference: %f %% +- %f %%" %
+                (benchmark_results['average_relative_difference'], benchmark_results['average_relative_difference_error']))
+
+        success('\n [======= Benchmark Completed =======]\n')
 
     def minimize(self):
         """"""
@@ -272,6 +369,15 @@ class App(object):
         with open('%s/runcard.yml' % self.args.output, 'r') as f:
             display_output['configuration'] = f.read()
 
+        # Add benchmark results, if possible
+        if self.config.use_benchmark_data:
+            try:
+                display_output['benchmark_results'] = pickle.load(open('%s/data/benchmark.p' % self.args.output, 'rb'))
+                rep.plot_benchmark(display_output['benchmark_results'])
+            except:
+                show("\n- WARNING: Can't find benchmark results, please run benchmark mode first!")
+                show("  Benchmark mode disabled.")
+
         rep.save(display_output)
 
         success('\n [======= Minimize Completed =======]\n')
@@ -285,14 +391,17 @@ class App(object):
 
         subparsers = parser.add_subparsers(help='sub-command help')
         parser_preprocess = subparsers.add_parser('preprocess', help='preprocess input/output data')
-        parser_preprocess.set_defaults(preprocess=True, model=False, minimize=False)
+        parser_preprocess.set_defaults(preprocess=True, model=False, benchmark=False, minimize=False)
 
         parser_model = subparsers.add_parser('model', help='fit NN model to bin')
         parser_model.add_argument('-b','--bin', help='the output bin to fit [1,NBINS]', type=int, required=True)
-        parser_model.set_defaults(model=True, preprocess=False, minimize=False)
+        parser_model.set_defaults(model=True, preprocess=False, benchmark=False, minimize=False)
+
+        parser_benchmark = subparsers.add_parser('benchmark', help='check the goodness of the tuning procedure')
+        parser_benchmark.set_defaults(preprocess=False, model=False, benchmark=True, minimize=False)
 
         parser_minimize = subparsers.add_parser('minimize', help='minimize and provide final tune')
-        parser_minimize.set_defaults(model=False, preprocess=False, minimize=True)
+        parser_minimize.set_defaults(model=False, preprocess=False, benchmark=False, minimize=True)
 
         parser.add_argument('runcard', help='the runcard file.')
         parser.add_argument('-o', '--output', help='the output folder', default='output')

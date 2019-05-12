@@ -20,6 +20,7 @@ class Config(object):
             patterns: list of patterns to look for in the MC runs histograms paths;
             unpatters: list of patterns to exclude during the runs loading;
             expfiles: list of files with the reference data;
+            benchmark_folders: folders containing the MC runs used as benchmark for the tuning procedure;
             weightrules: a list of weight modifiers (optional)
                 - pattern: it selects the histograms with that pattern in the path
                   condition: see below
@@ -39,6 +40,13 @@ class Config(object):
         self.patterns = self.get('input', 'patterns')
         self.unpatterns = self.get('input', 'unpatterns')
         self.expfiles = self.get('input', 'expfiles')
+
+        # Check for benchmark data
+        try:
+            self.get('input','benchmark_folders')
+            self.use_benchmark_data = True
+        except:
+            self.use_benchmark_data = False
 
         # Check for weightrules
         self.weightrules = []
@@ -112,6 +120,20 @@ class Config(object):
                 show('  ==] %s' % folder)
         except:
             error('Error "input" keyword not found in runcard.')
+
+        # Now do the same with the benchmark runs
+        if self.use_benchmark_data:
+            self.benchmark_yodafiles = []
+            benchmark_folders = self.content['input']['benchmark_folders']
+            for folder in benchmark_folders:
+                for f in glob.glob('%s/*.yoda' % folder):
+                    self.benchmark_yodafiles.append(f)
+                if len(self.benchmark_yodafiles) == 0:
+                    error('No yoda files found in %s' % folder)
+            self.benchmark_yodafiles.sort()
+            show('\n- Detected %d files with benchmark MC runs from:' % len(self.benchmark_yodafiles))
+            for folder in benchmark_folders:
+                show('  ==] %s' % folder)            
 
     def get(self, node, key):
         """"""
