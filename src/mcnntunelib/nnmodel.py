@@ -4,14 +4,14 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+from abc import ABC, abstractmethod
 import pickle, h5py
 import numpy as np
-from .tools import show
-from keras.models import Sequential
+from .tools import show, error, make_dir
+from keras.models import Sequential, load_model
 from keras.layers.core import Dense
-from keras.models import load_model
-from keras.wrappers.scikit_learn import KerasRegressor
-from sklearn.model_selection import GridSearchCV
+import keras.backend as K
+import matplotlib.pyplot as plt
 
 
 def build_model(input_dim=None, output_dim=1,
@@ -19,6 +19,7 @@ def build_model(input_dim=None, output_dim=1,
                 architecture=None, actfunction=None,
                 init='glorot_uniform'):
     """build neural network model"""
+    K.clear_session()
     model = Sequential()
 
     nsizes = [input_dim] + [l for l in architecture] + [output_dim]
@@ -30,8 +31,80 @@ def build_model(input_dim=None, output_dim=1,
     model.compile(loss=loss, optimizer=optimizer)
     return model
 
+class Model(ABC):
+    """Abstract class for a generic model"""
 
-class NNModel(object):
+    def __init__(self, runs, output_path, seed = 0):
+        """Store data attributes"""
+        self.runs = runs
+        self.output_path = output_path
+        self.seed = seed
+        self.READY = False
+
+    @abstractmethod
+    def build_and_train_model(self, setup):
+        pass
+
+    @abstractmethod
+    def search_and_load_model(self):
+        pass
+
+    @abstractmethod
+    def predict(self, x, scaled_x = True, scaled_y = True):
+        pass
+
+class DirectModel(Model):
+    """This model predicts the MC run output giving the input parameters."""
+    
+    def build_and_train_model(self, setup):
+        """Build and train n_bins FullyConnected models"""
+        make_dir(f'{self.output_path}')
+        
+        self.per_bin_nns = []
+        for bin in range(1, self.runs.y.shape[1]+1):
+            nn = PerBinModel(self.seed)
+            make_dir(f'{self.output_path}/model_bin_{bin}')
+            show(f'\n- Fitting bin {bin}')
+            nn.fit(self.runs.x_scaled, self.runs.y_scaled[:,bin-1], setup)
+            save(nn.model, nn.loss, f'{self.output_path}/model_bin_{bin}/model.h5')
+            nn.plot(f'{self.output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])
+            self.per_bin_nns.append(nn)
+
+        # Update READY flag
+        self.READY = True
+
+    def search_and_load_model(self):
+        """Search for models in the output path (and load them)."""
+        if self.READY:
+            error('Error: loading model into a ready-to-predict model object.')
+
+        self.per_bin_nns = []
+        for bin in range(1, self.runs.y.shape[1]+1):
+            nn = PerBinModel()
+            nn.model, nn.loss = load(f'{self.output_path}/model_bin_{bin}/model.h5')
+            nn.model.name = f'bin_predictor_{bin}'
+            self.per_bin_nns.append(nn)
+
+        # Update READY flag
+        self.READY = True
+
+    def predict(self, x, scaled_x = True, scaled_y = True):
+        """Predicts the y passing the x"""
+
+        if not self.READY:
+            error('Error: trying to predict with an untrained model.')
+
+        if not scaled_x:
+            x = self.runs.scale_x(x)
+
+        prediction = np.array([nn.predict(x) for nn in self.per_bin_nns]).reshape(-1)
+
+        if not scaled_y:
+            prediction = self.runs.unscale_y(prediction)
+
+        return prediction
+
+class PerBinModel(object):
 
     def __init__(self, seed = 0):
         """Allocate random seed"""
@@ -39,9 +112,8 @@ class NNModel(object):
         self.input_dim = 0
         self.output_dim = 0
         self.model = None
-        self.use_scan = 0
 
-    def fit_noscan(self, x, y, setup):
+    def fit(self, x, y, setup):
         """apply fitting procedure"""
         show('\n- Using no scan setup:')
         for key in setup.keys():
@@ -55,65 +127,12 @@ class NNModel(object):
         self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
         show('\n- Final loss function: %f' % self.loss[-1])
 
-    def fit_scan(self, x, y, setup, parallel):
-        """"""
-        self.use_scan = True
-        show('\n- Using grid search scan setup:')
-        for key in setup.keys():
-            show('  - %s : %s' % (key, setup.get(key)))
-
-        model = KerasRegressor(build_fn=build_model, verbose=0)
-        param_grid = dict(setup)
-        param_grid.pop('kfold')
-        param_grid['input_dim'] = [x.shape[1]]
-
-        if parallel:
-            njobs=-1
-            show('\n- Using parallel mode')
-        else: njobs = 1
-
-        grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=njobs,
-                            scoring='neg_mean_squared_error', cv=setup['kfold'],verbose=10)
-        grid_result = grid.fit(x, y)
-
-        # summary
-        show("\n- Best: %f using %s" % (-grid_result.best_score_, grid_result.best_params_))
-
-        means = -grid_result.cv_results_['mean_test_score']
-        means2 = -grid_result.cv_results_['mean_train_score']
-        stds = grid_result.cv_results_['std_test_score']
-        params = grid_result.cv_results_['params']
-
-        print('\n- Grid Seach results:')
-        for mean, stdev, mean2, param in zip(means, stds, means2, params):
-            show("%f (%f) %f %f with: %r" % (mean, stdev, mean2, mean / mean2, param))
-
-        self.model = grid_result.best_estimator_.model
-        self.loss = [-grid_result.best_score_, self.model.evaluate(x,y,verbose=0)]
-
     def predict(self, x):
         """compute prediction"""
         return self.model.predict(x)
 
-    def save(self, file):
-        """save model to file"""
-        self.model.save(file)
-        with h5py.File(file, 'r+') as f:
-            del f['optimizer_weights']
-            f.close()
-
-        pickle.dump(self.loss, open('%s.p' % file, 'wb'))
-        show('\n- Model saved in %s' % file)
-
-    def load(self, file):
-        """load model from file"""
-        self.model = load_model(file)
-        self.loss = pickle.load(open('%s.p' % file, 'rb'))
-        show('\n- Model loaded from %s' % file)
-
     def plot(self, path, x, y):
         """"""
-        import matplotlib.pyplot as plt
         for i in range(x.shape[1]):
             plt.figure()
             plt.plot(x[:,i], y, 'o', color='c', label='MC run')
@@ -123,13 +142,108 @@ class NNModel(object):
             plt.legend(loc='best')
             plt.grid()
             plt.savefig('%s/x%d.svg' % (path, i))
+            plt.close()
 
-        plt.figure()
-        plt.plot(self.loss)
-        plt.title('loss function')
-        plt.xlabel('iteration')
-        plt.ylabel('loss')
-        plt.yscale('log')
-        plt.xscale('log')
-        plt.grid()
-        plt.savefig('%s/loss.svg' % path)
+        plot_losses(path, self.loss)
+
+class InverseModel(Model):
+    """ This model predicts the input parameters giving the MC run output"""
+
+    def build_and_train_model(self, setup):
+        """Build and train a FullyConnected model"""
+        make_dir(f'{self.output_path}')
+
+        # Allocate random seed
+        np.random.seed(self.seed)
+
+        # Print setup
+        show('\n- Using no scan setup:')
+        for key in setup.keys():
+            show('  - %s : %s' % (key, setup.get(key)))
+
+        # Rename inputs and outputs for readability
+        x = self.runs.y_scaled
+        y = self.runs.x_scaled
+
+        # Build and train the model
+        self.model = build_model(x.shape[1], y.shape[1], setup['optimizer'], 'mse', setup['architecture'], setup['actfunction'])
+        h = self.model.fit(x, y, epochs=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
+        self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
+        show('\n- Final loss function: %f' % self.loss[-1])
+
+        # Save the losses and the model
+        save(self.model, self.loss, f'{self.output_path}/model.h5')
+        plot_losses(self.output_path, self.loss)
+
+        # Update READY flag
+        self.READY = True
+
+    def search_and_load_model(self):
+        """Search for a model in the output path (and load it)."""
+        if self.READY:
+            error('Error: loading model into an already complete model object.')
+
+        self.model, self.loss = load(f'{self.output_path}/model.h5')
+
+        # Update READY flag
+        self.READY = True
+
+    def predict(self, x, scaled_x = True, scaled_y = True):
+        """Predicts the y passing the x. Notice that the notation is
+        the opposite of the one in the Data class"""
+
+        if not self.READY:
+            error('Error: trying to predict with an untrained model.')
+
+        if not scaled_x:
+            x = self.runs.scale_y(x)
+
+        prediction = self.model.predict(x).reshape(-1)
+
+        if not scaled_y:
+            prediction = self.runs.unscale_x(prediction)
+
+        return prediction
+
+def get_model(model_type, runs, output_path, seed = 0):
+    """Return a Model object, discriminating between different model type"""
+    if model_type == 'DirectModel':
+        return DirectModel(runs, output_path, seed)
+    elif model_type == 'InverseModel':
+        return InverseModel(runs, output_path, seed)
+    else:
+        error('Error: invalid model type.')
+
+def save(model, loss, file):
+        """save model to file"""
+        model.save(file)
+        with h5py.File(file, 'r+') as f:
+            del f['optimizer_weights']
+            f.close()
+
+        pickle.dump(loss, open(f'{file}.p', 'wb'))
+        show(f'\n- Model saved in {file}')
+
+def load(file):
+        """load model from file"""
+        model = load_model(file)
+        loss = pickle.load(open(f'{file}.p', 'rb'))
+        show(f'\n- Model loaded from {file}')
+
+        return model, loss
+
+def plot_losses(path, training_loss, validation_loss = None):
+    """"""
+    plt.figure()
+    plt.plot(training_loss, label='Training loss')
+    if not (validation_loss is None):
+        plt.plot(validation_loss, label='Validation loss')
+    plt.title('loss function')
+    plt.xlabel('iteration')
+    plt.ylabel('loss')
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.grid()
+    plt.legend()
+    plt.savefig(f'{path}/loss.svg')
+    plt.close()

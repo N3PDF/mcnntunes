@@ -3,6 +3,8 @@
 {% block body %}
 <div class="markdown-body">
 
+    {% if model_type is eq('DirectModel') %}
+    
     <h2>Model vs MC runs uncertainties</h2>
     <figure>
         <img src="plots/errors.svg" alt="errors">
@@ -22,6 +24,8 @@
             {% endfor %}
         </figure>
     </div>
+
+    {% endif %}
 
 </div>
 {% endblock %}

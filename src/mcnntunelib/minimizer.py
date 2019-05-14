@@ -4,62 +4,126 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+from abc import ABC, abstractmethod
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
 from cma import fmin
 import mcnntunelib.stats as stats
+import pickle, h5py
+from .tools import show, error, make_dir
+from keras.models import Model
+from keras.layers.core import Dense
+from keras.layers import Input
+import keras.backend as K
 
+class Minimizer(ABC):
+    """Abstract class for minimizing the chi2"""
 
-class CMAES(object):
-
-    def __init__(self, models, truth, runs, useBounds = True, output='.', truth_index=0):
-        """"""
-        self.models = models
+    def __init__(self, runs, truth, model, output='.', truth_index=0):
+        """Set data attributes"""
+        self.model = model
         self.truth = truth.y[truth_index]
         self.truth_error2 = np.square(truth.yerr[truth_index]) + np.square(np.mean(runs.yerr, axis=0))
         self.runs = runs
         self.output = output
+
+    def chi2(self, x):
+        """Reduced chi2 estimator (weighted, eventually)"""
+        x = x.reshape(1,self.runs.x_scaled.shape[1])
+        prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight)
+
+    def unweighted_chi2(self, x):
+        """Reduced chi2 estimator (always unweighted)"""
+        x = x.reshape(1,self.runs.x_scaled.shape[1])
+        prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
+        return stats.chi2(prediction, self.truth, self.truth_error2)
+
+    @abstractmethod
+    def minimize(self):
+        pass
+
+class CMAES(Minimizer):
+    """Minimize the chi2 using CMA-EvolutionStrategy"""
+
+    def __init__(self, runs, truth, model, output='.', truth_index=0, useBounds = True, restarts=2):
+        """Set data attributes"""
+        Minimizer.__init__(self, runs, truth, model, output=output, truth_index=truth_index)
+
         s0max = np.max(runs.x_scaled, axis=0).tolist()
         s0min = np.min(runs.x_scaled, axis=0).tolist()
         self.center = 0
         self.sigma = 0.1
+        self.restarts = restarts
 
         self.opts = {'verb_filenameprefix': '%s/cma-' % output, 'tolfunhist': 0.01}
         if useBounds:
             self.opts['bounds'] = [s0min, s0max]
 
-        print('\n- Minimizer setup:')
+        show('\n- Minimizer setup:')
         if useBounds:
-            print('  - bounds: on')
+            show('  - bounds: on')
         else:
-            print('  - bounds: off')
-        print('  - centers: %f' % self.center)
-        print('  - sigma: %f ' % self.sigma)
+            show('  - bounds: off')
+        show('  - centers: %f' % self.center)
+        show('  - sigma: %f ' % self.sigma)
+        show('  - restarts: %d ' % restarts)
 
-    def chi2(self, x):
-        prediction = np.zeros(self.truth.shape[0])
-        X = x.reshape(1,self.runs.x_scaled.shape[1])
-        for i, model in enumerate(self.models):
-            prediction[i] = model.predict(X)
-        prediction = self.runs.unscale_y(prediction)
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight)
-
-    def unweighted_chi2(self, x):
-        prediction = np.zeros(self.truth.shape[0])
-        X = x.reshape(1,self.runs.x_scaled.shape[1])
-        for i, model in enumerate(self.models):
-            prediction[i] = model.predict(X)
-        prediction = self.runs.unscale_y(prediction)
-        return stats.chi2(prediction, self.truth, self.truth_error2)
-
-    def minimize(self, restarts):
-        """"""
-        print('  - restarts: %d ' % restarts)
-        res = fmin(self.chi2,
+    def minimize(self):
+        """Minimize the chi2 and return the results"""
+        self.result = fmin(self.chi2,
                    str([self.center] * self.runs.x_scaled.shape[1]),
                    self.sigma,
                    self.opts,
-                   restarts=restarts,
+                   restarts=self.restarts,
                    bipop=True)
-        return res
+
+        # Unscale best_x and best_std
+        best_x = self.runs.unscale_x(self.result[0])
+        best_std = self.result[6] * self.runs.x_std
+
+        return best_x, best_std
+
+    def get_fmin_output(self):
+        """"""
+        try:
+            return self.result
+        except:
+            error('Error: call to get_fmin_output without calling minimize')
+
+class GradientMinimizer(Minimizer):
+    """"""
+
+    def __init__(self, runs, truth, model, output='.', truth_index=0):
+        """Setting data attributes"""
+        Minimizer.__init__(self, runs, truth, model, output=output, truth_index=truth_index)
+
+    def minimize(self):
+        """Build and train the minimizer, and return the results"""
+
+        # Build the model
+        input_tensor = Input(shape=(1,), name='input_layer')
+        first_layer = Dense(self.runs.x.shape[1], activation='linear', name='parameters_layer', use_bias = False)(input_tensor)
+        predictions = [nn.model(first_layer) for nn in self.model.per_bin_nns]
+        predictor = Model(inputs=input_tensor, outputs=predictions)
+        predictor.compile(optimizer='adam', loss=self.chi2_Keras_loss)
+
+        # Converte the unscaled target array to a scaled list
+        scaled_truth = self.runs.scale_y(self.truth)
+        target = [np.array([scaled_truth[i]]) for i in range(scaled_truth.shape[0])]
+
+        # Train the model
+        predictor.fit(x=np.ones(shape=(1,1)), y=target, epochs=5000, verbose=0)
+
+        # Get the best parameters
+        for layer in predictor.layers:
+            if layer.name == 'parameters_layer':
+                best_x = self.runs.unscale_x(np.array(layer.get_weights()).reshape(-1))
+        best_std = np.ones(best_x.shape) # ISSUE
+
+        return best_x, best_std
+
+    def chi2_Keras_loss(self, y_true, y_pred):
+        """Custom chi2 loss function ready to be plugged in in Keras"""
+        return stats.chi2(y_true, y_pred, self.truth_error2 / (self.runs.y_std ** 2), weights=self.runs.y_weight)

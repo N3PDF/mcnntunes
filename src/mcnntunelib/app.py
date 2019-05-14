@@ -4,16 +4,26 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+# ISSUE: Error estimation with InverseModel and GradientMinimizer
+# TODO: Search for bugs in GradientMinimizer
+# TODO: Improve HTML report when using InverseModel
+# TODO: Add an HTML report specific for the optimize mode
+# ISSUE: The scratch folder doesn't work when using parallel scan (dangerous)
+# TODO: Add more options for the models
+
 import time, pickle
 import argparse, shutil, filecmp, logging
 from .runcardio import Config
 from .yodaio import Data
-from .nnmodel import NNModel
-from .minimizer import CMAES
+from .nnmodel import get_model
+from .minimizer import CMAES, GradientMinimizer
 from .report import Report
 from .tools import make_dir, show, info, success, error, __version__, __author__
 import mcnntunelib.stats as stats
 import numpy as np
+from hyperopt import fmin as fminHyperOpt
+from hyperopt import hp, tpe, Trials, STATUS_OK, space_eval
+from hyperopt.mongoexp import MongoTrials
 
 
 class App(object):
@@ -32,11 +42,13 @@ class App(object):
         if self.args.preprocess:
             outfile = '%s/logs/preprocess.log' % self.args.output
         elif self.args.model:
-            outfile = '%s/logs/model_bin_%s.log' % (self.args.output,self.args.bin)
+            outfile = '%s/logs/model.log' % self.args.output
         elif self.args.benchmark:
             outfile = '%s/logs/benchmark.log' % self.args.output
+        elif self.args.tune:
+            outfile = '%s/logs/tune.log' % self.args.output
         else:
-            outfile = '%s/logs/minimize.log' % self.args.output
+            outfile = '%s/logs/optimize.log' % self.args.output
 
         logging.basicConfig(format='%(message)s', filename=outfile,
                             filemode='w', level=logging.INFO)
@@ -65,18 +77,23 @@ class App(object):
             # first step
             self.preprocess()
         elif self.args.model:
-            # perform fit per bin
-            self.create_model()
+            # build and train model
+            self.create_model(self.args.output, self.config.model_type, self.config.noscan_setup)
         elif self.args.benchmark:
             # check procedure goodness
-            self.benchmark()
+            self.benchmark(self.args.output, self.config.model_type, self.config.minimizer_type)
+        elif self.args.tune:
+            # perform the tune and build the report
+            self.tune()
         else:
-            self.minimize()
+            # do an hyperparameters scan with HyperOpt
+            self.optimize()
 
         show(" --- %s seconds ---" % (time.time() - start_time))
 
     def preprocess(self):
         """Prepare and describe MC input data"""
+
         info('\n [======= Preprocess mode =======]')
 
         # Print bins weighting
@@ -114,7 +131,10 @@ class App(object):
             # Save to disk
             benchmark_data.save(self.BENCHMARK_DATA % self.args.output)
 
-        show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
+        if self.config.model_type == 'DirectModel':
+            show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
+        else:
+            show('\n- You can now proceed with the {model} mode')
 
         # print chi2 to MC
         info('\n [======= Chi2 Data-MC =======]')
@@ -165,8 +185,8 @@ class App(object):
 
         success('\n [======= Preprocess Completed =======]\n')
 
-    def create_model(self):
-        """main loop"""
+    def create_model(self, output_path, model_type, setup):
+        """Build and train the NN models"""
 
         info('\n [======= Model mode =======]')
 
@@ -174,70 +194,63 @@ class App(object):
 
         info('\n [======= Training NN model =======]')
 
-        nn = NNModel()
-        bin = self.args.bin
-        if bin < 1 or bin > runs.y.shape[1]:
-            error('Bin out of bounds [1,%d]' % runs.y.shape[1])
-
-        make_dir('%s/model_bin_%d' % (self.args.output,bin))
-
-        show('\n- Fitting bin %d' % bin)
-
-        x = runs.x_scaled
-        y = runs.y_scaled[:, bin-1]
-        if not self.config.scan:
-            nn.fit_noscan(x, y, self.config.noscan_setup)
-        else:
-            nn.fit_scan(x, y, self.config.scan_setup, self.args.parallel)
-
-        # save model to disk
-        nn.save('%s/model_bin_%d/model.h5' % (self.args.output, bin))
-        nn.plot('%s/model_bin_%d' % (self.args.output, bin), x, y)
+        nn = get_model(model_type, runs, f'{output_path}/{model_type}')
+        nn.build_and_train_model(setup)
 
         success('\n [======= Training Completed =======]\n')
 
-    def benchmark(self):
+    def benchmark(self, output_path, model_type, minimizer_type):
         """
-        This program performs a closure test of the tuning procedure: for each MC run in the benchmark dataset,
+        This function performs a closure test of the tuning procedure: for each MC run in the benchmark dataset,
         it performs the Mcnntune tuning procedure using the MC run as the experimental data,
         and then compares the estimated parameters with the ones used during the run generation.
         """
-        
+
         info('\n [======= Benchmark mode =======]')
 
         if not self.config.use_benchmark_data:
             error('Error: benchmark mode not enabled.\nTry loading some valid MC runs in the benchmark dataset.')
 
+        # Load data and model
         runs = Data.load(self.RUNS_DATA % self.args.output)
-
         benchmark_data = Data.load(self.BENCHMARK_DATA % self.args.output)
+        nn = get_model(model_type, runs, f'{output_path}/{model_type}')
+        nn.search_and_load_model()
 
-        nns = []
-        for bin in range(runs.y.shape[1]):
-            nn = NNModel()
-            nn.load('%s/model_bin_%d/model.h5' % (self.args.output, bin+1))
-            nns.append(nn)
-
+        # Initialize variables and folder
         benchmark_chi2 = np.zeros(benchmark_data.y.shape[0])
         benchmark_mean_relative_difference = np.zeros(benchmark_data.y.shape[0])
-
         benchmark_results = {}
         benchmark_results['single_closure_test_results'] = []
-
-        make_dir('%s/benchmark' % self.args.output)
+        make_dir(f'{output_path}/benchmark')
 
         # Calculate best parameters for each benchmark run
         for index in range(benchmark_data.y.shape[0]):
-            info('\n [======= Tuning benchmark run %d/%d  =======]' % (index+1, benchmark_data.y.shape[0]))
+            info(f'\n [======= Tuning benchmark run {index+1}/{benchmark_data.y.shape[0]}  =======]')
             
-            # Minimize chi2
-            make_dir('%s/benchmark/closure_test_%d' % (self.args.output, index+1))
-            m = CMAES(nns, benchmark_data, runs, self.config.bounds, '%s/benchmark/closure_test_%d' % (self.args.output, index+1), truth_index=index)
-            result = m.minimize(self.config.restarts)
+            # Get the predicted parameters, discriminating between direct and inverse models
+            make_dir(f'{output_path}/benchmark/closure_test_{index+1}')
+            if model_type == 'DirectModel':
 
-            best_x = result[0] * runs.x_std + runs.x_mean
-            best_std = result[6] * runs.x_std
+                # Minimizer choice
+                if minimizer_type == 'CMAES':
+                    m = CMAES(runs, benchmark_data, nn,
+                            f'{output_path}/benchmark/closure_test_{index+1}', truth_index=index,
+                            useBounds=self.config.bounds, restarts=self.config.restarts)
+                else:
+                    m = GradientMinimizer(runs, benchmark_data, nn,
+                            f'{output_path}/benchmark/closure_test_{index+1}', truth_index=index)
 
+                # Get the predicted parameters
+                best_x, best_std = m.minimize()
+
+            else:
+                # For the InverseModel it's only an inference
+                y = benchmark_data.y_scaled[index,:].reshape(1,benchmark_data.y_scaled.shape[1])
+                best_x = nn.predict(y, scaled_y = False)
+                best_std = np.ones(runs.x.shape[1]) # ISSUE
+
+            # Get the true parameters
             true_x = benchmark_data.x[index]
 
             # Compare the results with the true parameters
@@ -267,7 +280,8 @@ class App(object):
         benchmark_results['average_relative_difference'] = np.mean(benchmark_mean_relative_difference)
         benchmark_results['average_relative_difference_error'] = np.sqrt(np.var(benchmark_mean_relative_difference) 
                                                                         / benchmark_mean_relative_difference.shape[0])
-        pickle.dump(benchmark_results, open('%s/data/benchmark.p' % self.args.output, 'wb'))
+        if output_path == self.args.output:
+            pickle.dump(benchmark_results, open('%s/data/benchmark.p' % self.args.output, 'wb'))
 
         # Printing benchmark results
         show("\n##################################################\n")
@@ -277,94 +291,125 @@ class App(object):
 
         success('\n [======= Benchmark Completed =======]\n')
 
-    def minimize(self):
-        """"""
-        info('\n [======= Minimize mode =======]')
+        # Return the dictionary for the HyperOpt scan
+        benchmark_results['status'] = STATUS_OK
+        benchmark_results['loss'] = benchmark_results['average_relative_difference']
+        benchmark_results['loss_variance'] = benchmark_results['average_relative_difference_error']
 
+        return benchmark_results
+
+    def tune(self):
+        """Provide the final tune and build the HTML report"""
+
+        info('\n [======= Tune mode =======]')
+
+        # Load data and model
         runs = Data.load(self.RUNS_DATA % self.args.output)
-
         expdata = Data.load(self.EXP_DATA % self.args.output)
+        nn = get_model(self.config.model_type, runs, f'{self.args.output}/{self.config.model_type}')
+        nn.search_and_load_model()
 
-        nns = []
-        for bin in range(runs.y.shape[1]):
-            nn = NNModel()
-            nn.load('%s/model_bin_%d/model.h5' % (self.args.output, bin+1))
-            nns.append(nn)
+        # Get the predicted parameters, discriminating between direct and inverse models
+        if self.config.model_type == 'DirectModel':
 
-        info('\n [======= Minimizing chi2 =======]')
-        m = CMAES(nns, expdata, runs, self.config.bounds, self.args.output)
-        result = m.minimize(self.config.restarts)
+            # Minimizer choice
+            if self.config.minimizer_type == 'CMAES':
+                m = CMAES(runs, expdata, nn,
+                        self.args.output, useBounds=self.config.bounds, restarts=self.config.restarts)
+            else:
+                m = GradientMinimizer(runs, expdata, nn, self.args.output)
 
-        logger = result[-3]
-        best_x = result[0] * runs.x_std + runs.x_mean
-        best_std = result[6] * runs.x_std
+            # Get the predicted parameters + stats
+            best_x, best_std = m.minimize()
+            chi2 = m.chi2(runs.scale_x(best_x))
+
+        else:
+            # For the InverseModel it's only an inference
+            y = expdata.y_scaled[0,:].reshape(1,expdata.y_scaled.shape[1])
+            best_x = nn.predict(y, scaled_y = False)
+            best_std = np.ones(runs.x.shape[1]) # ISSUE
 
         info('\n [======= Result Summary =======]')
         
         # print best parameters
-        if self.config.use_weights:
-            show('\n- Suggested best parameters for (weighted) chi2/dof = %.6f' % result[1])
+        if self.config.model_type == 'DirectModel':
+            if self.config.use_weights:
+                show('\n- Suggested best parameters for (weighted) chi2/dof = %.6f' % chi2)
+            else:
+                show('\n- Suggested best parameters for chi2/dof = %.6f' % chi2)
         else:
-            show('\n- Suggested best parameters for chi2/dof = %.6f' % result[1])
+            show('\n- Suggested best parameters:')
         for i, p in enumerate(runs.params):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
 
-        # print correlation matrix
-        show('\n- Correlation matrix:')
-        corr = result[-2].correlation_matrix()
-        for row in corr:
-            show(row)
+        # print correlation matrix (if using CMA-ES)
+        if self.config.model_type == 'DirectModel' and self.config.minimizer_type == 'CMAES':
 
-        # propose eigenvectors
-        cov = np.zeros(shape=(len(corr),len(corr)))
-        for i in range(cov.shape[0]):
-            for j in range(cov.shape[1]):
-                cov[i,j] = corr[i,j]*best_std[i]*best_std[j]
-        eig, vec = np.linalg.eig(cov)
-        replica = result[0] + (eig ** 0.5 * vec).T
-        show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
-        for rep in replica:
-            show(runs.unscale_x(rep))
+            result = m.get_fmin_output()
+
+            show('\n- Correlation matrix:')
+            corr = result[-2].correlation_matrix()
+            for row in corr:
+                show(row)
+
+            # propose eigenvectors
+            cov = np.zeros(shape=(len(corr),len(corr)))
+            for i in range(cov.shape[0]):
+                for j in range(cov.shape[1]):
+                    cov[i,j] = corr[i,j]*best_std[i]*best_std[j]
+            eig, vec = np.linalg.eig(cov)
+            replica = result[0] + (eig ** 0.5 * vec).T
+            show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
+            for rep in replica:
+                show(runs.unscale_x(rep))
 
         info('\n [======= Building report =======]')
 
         # Start building the report
         rep = Report(self.args.output)
-        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0]), 'weighted_dof': runs.weighted_dof}
+        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0]),
+                            'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
 
         # Add best parameters
         for i, p in enumerate(runs.params):
             display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
                                                 'std': str('%e') % best_std[i]})
-
-        # Add chi2
-        if self.config.use_weights:
-            display_output['weighted_chi2'] = result[1]
-            display_output['unweighted_chi2'] = m.unweighted_chi2(result[0])
-        else:
-            display_output['unweighted_chi2'] = result[1]
+        
+        # Retrieve MC runs data
         display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
-        for i, element in enumerate(display_output['summary']):
-            if element['name'] == 'TOTAL':
-                display_output['summary'][i]['model'] = display_output['unweighted_chi2']
-            elif element['name'] == 'TOTAL (weighted)':
-                display_output['summary'][i]['model'] = display_output['weighted_chi2']
 
-        # Calculate prediction with best parameters (using nn model)
-        up = np.zeros(expdata.y.shape[1])
-        for i, nn in enumerate(nns):
-            up[i] = nn.predict(result[0].reshape(1, result[0].shape[0])).reshape(1)
+        # Switch case
+        if display_output['model_type'] == 'DirectModel':
 
-        # Make all plots needed in the report
-        rep.plot_correlations(corr)
-        rep.plot_data(expdata, runs.unscale_y(up), runs, best_x, display_output['summary'])
-        rep.plot_minimize(m, logger, best_x, result[0], best_std, runs, self.config.use_weights)
-        display_output['avg_loss'] = rep.plot_model(nns, runs, expdata)
+            display_output['minimizer_type'] = self.config.minimizer_type
 
-        # Add number of data-model plots
-        display_output['data_hists'] = len(expdata.plotinfo)
+            # Add chi2
+            if self.config.use_weights:
+                display_output['weighted_chi2'] = chi2
+                display_output['unweighted_chi2'] = m.unweighted_chi2(runs.scale_x(best_x))
+            else:
+                display_output['unweighted_chi2'] = chi2
+            for i, element in enumerate(display_output['summary']):
+                if element['name'] == 'TOTAL':
+                    display_output['summary'][i]['model'] = display_output['unweighted_chi2']
+                elif element['name'] == 'TOTAL (weighted)':
+                    display_output['summary'][i]['model'] = display_output['weighted_chi2']
 
-        with open('%s/logs/minimize.log' % self.args.output, 'r') as f:
+            # Add number of data-model plots
+            display_output['data_hists'] = len(expdata.plotinfo)
+
+            # Calculate prediction with best parameters (using nn model)
+            up = nn.predict(best_x.reshape(1, best_x.shape[0]), scaled_x = False, scaled_y = False)
+
+            # Make all plots needed in the report
+            rep.plot_data(expdata, up, runs, best_x, display_output['summary'])
+            rep.plot_minimize(m, best_x, runs.scale_x(best_x), best_std, runs, self.config.use_weights)
+            if display_output['minimizer_type'] == 'CMAES':
+                rep.plot_CMAES_logger(m.get_fmin_output()[-3])
+                rep.plot_correlations(corr)
+            display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
+
+        with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()
         with open('%s/runcard.yml' % self.args.output, 'r') as f:
             display_output['configuration'] = f.read()
@@ -380,7 +425,50 @@ class App(object):
 
         rep.save(display_output)
 
-        success('\n [======= Minimize Completed =======]\n')
+        success('\n [======= Tune Completed =======]\n')
+
+    def optimize(self):
+        """Tune model hyperparameters with the HyperOpt library"""
+        
+        info('\n [======= Optimize mode =======]')
+
+        if not self.config.enable_hyperparameter_scan:
+            error('Error: no scan settings in the runcard')
+
+        # Call the HyperOpt fmin function with the associated Trials object
+        if self.config.enable_cluster:
+            trials = MongoTrials(self.config.cluster_url, exp_key=self.config.cluster_exp_key)
+        else:
+            trials = Trials()
+        best_config = fminHyperOpt(self.objective, space=self.config.model_scan_setup,
+            algo=tpe.suggest, max_evals=self.config.max_evals, trials=trials)
+
+        # Print the results
+        best_config = space_eval(self.config.model_scan_setup, best_config)
+        show("\n- Best configuration:")
+        for key, content in best_config.items():
+            show(f"  ==] {key}: {content}")
+
+        success('\n [======= Optimize Completed =======]\n')
+    
+    def objective(self, configuration_dictionary):
+        """The objective function for the hyperparameter scan"""
+
+        # Setting up the configurations
+        setup = {}
+        setup['nb_epoch'] = configuration_dictionary['epochs']
+        setup['optimizer'] = configuration_dictionary['optimizer']
+        setup['batch_size'] = configuration_dictionary['batch_size']
+        setup['architecture'] = []
+        for size in configuration_dictionary['architecture']:
+            setup['architecture'].append(int(size))
+        setup['actfunction'] = configuration_dictionary['actfunction']
+
+        # Create the model and run a benchmark on it
+        self.create_model(self.config.scratch_folder, self.config.model_type, setup)
+        benchmark_results = self.benchmark(self.config.scratch_folder, self.config.model_type, self.config.minimizer_type)
+
+        return benchmark_results
 
     def argparser(self):
         """prepare the argument parser"""
@@ -391,22 +479,22 @@ class App(object):
 
         subparsers = parser.add_subparsers(help='sub-command help')
         parser_preprocess = subparsers.add_parser('preprocess', help='preprocess input/output data')
-        parser_preprocess.set_defaults(preprocess=True, model=False, benchmark=False, minimize=False)
+        parser_preprocess.set_defaults(preprocess=True, model=False, benchmark=False, tune=False, optimize=False)
 
-        parser_model = subparsers.add_parser('model', help='fit NN model to bin')
-        parser_model.add_argument('-b','--bin', help='the output bin to fit [1,NBINS]', type=int, required=True)
-        parser_model.set_defaults(model=True, preprocess=False, benchmark=False, minimize=False)
+        parser_model = subparsers.add_parser('model', help='fit NN model')
+        parser_model.set_defaults(model=True, preprocess=False, benchmark=False, tune=False, optimize=False)
 
         parser_benchmark = subparsers.add_parser('benchmark', help='check the goodness of the tuning procedure')
-        parser_benchmark.set_defaults(preprocess=False, model=False, benchmark=True, minimize=False)
+        parser_benchmark.set_defaults(preprocess=False, model=False, benchmark=True, tune=False, optimize=False)
 
-        parser_minimize = subparsers.add_parser('minimize', help='minimize and provide final tune')
-        parser_minimize.set_defaults(model=False, preprocess=False, benchmark=False, minimize=True)
+        parser_tune = subparsers.add_parser('tune', help='provide final tune')
+        parser_tune.set_defaults(model=False, preprocess=False, benchmark=False, tune=True, optimize=False)
+
+        parser_optimize = subparsers.add_parser('optimize', help='tune hyperparameters using the HyperOpt library')
+        parser_optimize.set_defaults(model=False, preprocess=False, benchmark=False, tune=False, optimize=True)
 
         parser.add_argument('runcard', help='the runcard file.')
         parser.add_argument('-o', '--output', help='the output folder', default='output')
-        parser.add_argument('-p','--parallel', dest='parallel', action='store_true',
-                            help='use multicore during grid search cv', default=False)
 
         return parser
 

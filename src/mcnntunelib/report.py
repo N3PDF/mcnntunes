@@ -36,12 +36,14 @@ class Report(object):
 
         show('\n- Generated report @ file://%s/%s/index.html' % (os.getcwd(), self.path))
 
-    def plot_minimize(self, minimizer, logger, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+    def plot_CMAES_logger(self, logger):
         """"""
         logger.es.plot()
-        plt.savefig('%s/plots/minimizer.svg' % self.path)
+        plt.savefig(f'{self.path}/plots/minimizer.svg')
         plt.close()
 
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+        """"""
         # plot 1d profiles
         N = 40 # points
         for dim in range(runs.x_scaled.shape[1]):
