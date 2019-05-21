@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
-from cma import fmin
+from cma.evolution_strategy import fmin
 import mcnntunelib.stats as stats
 import pickle, h5py
 from .tools import show, error, make_dir
@@ -20,13 +20,17 @@ import keras.backend as K
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""
 
-    def __init__(self, runs, truth, model, output='.', truth_index=0):
+    def __init__(self, runs, truth, model, output = None, truth_index = 0):
         """Set data attributes"""
         self.model = model
         self.truth = truth.y[truth_index]
         self.truth_error2 = np.square(truth.yerr[truth_index]) + np.square(np.mean(runs.yerr, axis=0))
         self.runs = runs
-        self.output = output
+        if output is None:
+            self.write_on_disk = False
+        else:
+            self.write_on_disk = True
+            self.output = output
 
     def chi2(self, x):
         """Reduced chi2 estimator (weighted, eventually)"""
@@ -47,9 +51,9 @@ class Minimizer(ABC):
 class CMAES(Minimizer):
     """Minimize the chi2 using CMA-EvolutionStrategy"""
 
-    def __init__(self, runs, truth, model, output='.', truth_index=0, useBounds = True, restarts=2):
+    def __init__(self, runs, truth, model, output =  None, truth_index = 0, useBounds = True, restarts = 2):
         """Set data attributes"""
-        Minimizer.__init__(self, runs, truth, model, output=output, truth_index=truth_index)
+        Minimizer.__init__(self, runs, truth, model, output = output, truth_index = truth_index)
 
         s0max = np.max(runs.x_scaled, axis=0).tolist()
         s0min = np.min(runs.x_scaled, axis=0).tolist()
@@ -57,7 +61,11 @@ class CMAES(Minimizer):
         self.sigma = 0.1
         self.restarts = restarts
 
-        self.opts = {'verb_filenameprefix': '%s/cma-' % output, 'tolfunhist': 0.01}
+        self.opts = {'tolfunhist': 0.01}
+        if self.write_on_disk:
+            self.opts['verb_filenameprefix'] = f'{self.output}/cma-'
+        else:
+            self.opts['verbose'] = -9
         if useBounds:
             self.opts['bounds'] = [s0min, s0max]
 
@@ -95,9 +103,9 @@ class CMAES(Minimizer):
 class GradientMinimizer(Minimizer):
     """"""
 
-    def __init__(self, runs, truth, model, output='.', truth_index=0):
+    def __init__(self, runs, truth, model, output = None, truth_index = 0):
         """Setting data attributes"""
-        Minimizer.__init__(self, runs, truth, model, output=output, truth_index=truth_index)
+        Minimizer.__init__(self, runs, truth, model, output = output, truth_index = truth_index)
 
     def minimize(self):
         """Build and train the minimizer, and return the results"""
@@ -107,6 +115,9 @@ class GradientMinimizer(Minimizer):
         first_layer = Dense(self.runs.x.shape[1], activation='linear', name='parameters_layer', use_bias = False)(input_tensor)
         predictions = [nn.model(first_layer) for nn in self.model.per_bin_nns]
         predictor = Model(inputs=input_tensor, outputs=predictions)
+        for i in range(len(predictor.layers)): # freeze everything except the parameters layer
+            if predictor.layers[i].name != 'parameters_layer':
+                predictor.layers[i].trainable = False
         predictor.compile(optimizer='adam', loss=self.chi2_Keras_loss)
 
         # Converte the unscaled target array to a scaled list

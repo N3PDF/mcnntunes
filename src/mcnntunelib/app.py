@@ -5,10 +5,7 @@ Performs MC tunes using Neural Networks
 """
 
 # ISSUE: Error estimation with InverseModel and GradientMinimizer
-# TODO: Search for bugs in GradientMinimizer
 # TODO: Improve HTML report when using InverseModel
-# TODO: Add an HTML report specific for the optimize mode
-# ISSUE: The scratch folder doesn't work when using parallel scan (dangerous)
 # TODO: Add more options for the models
 
 import time, pickle
@@ -24,6 +21,8 @@ import numpy as np
 from hyperopt import fmin as fminHyperOpt
 from hyperopt import hp, tpe, Trials, STATUS_OK, space_eval
 from hyperopt.mongoexp import MongoTrials
+import keras.backend as K
+from keras.models import Sequential
 
 
 class App(object):
@@ -78,10 +77,10 @@ class App(object):
             self.preprocess()
         elif self.args.model:
             # build and train model
-            self.create_model(self.args.output, self.config.model_type, self.config.noscan_setup)
+            self.create_model(self.config.model_type, self.config.noscan_setup, output_path = self.args.output)
         elif self.args.benchmark:
             # check procedure goodness
-            self.benchmark(self.args.output, self.config.model_type, self.config.minimizer_type)
+            self.benchmark(self.config.model_type, self.config.minimizer_type, output_path = self.args.output)
         elif self.args.tune:
             # perform the tune and build the report
             self.tune()
@@ -185,21 +184,33 @@ class App(object):
 
         success('\n [======= Preprocess Completed =======]\n')
 
-    def create_model(self, output_path, model_type, setup):
+    def create_model(self, model_type, setup, output_path = None):
         """Build and train the NN models"""
 
+        K.clear_session()
+
         info('\n [======= Model mode =======]')
+
+        # Check if the model should be saved on disk
+        if output_path is None:
+            write_on_disk = False
+        else:
+            write_on_disk = True
 
         runs = Data.load(self.RUNS_DATA % self.args.output)
 
         info('\n [======= Training NN model =======]')
 
-        nn = get_model(model_type, runs, f'{output_path}/{model_type}')
+        nn = get_model(model_type, runs)
         nn.build_and_train_model(setup)
+        if write_on_disk:
+            nn.save_model_and_plots(f'{output_path}/{model_type}')
 
         success('\n [======= Training Completed =======]\n')
 
-    def benchmark(self, output_path, model_type, minimizer_type):
+        return nn
+
+    def benchmark(self, model_type, minimizer_type, output_path = None, nn = None):
         """
         This function performs a closure test of the tuning procedure: for each MC run in the benchmark dataset,
         it performs the Mcnntune tuning procedure using the MC run as the experimental data,
@@ -211,35 +222,63 @@ class App(object):
         if not self.config.use_benchmark_data:
             error('Error: benchmark mode not enabled.\nTry loading some valid MC runs in the benchmark dataset.')
 
+        # Check for a valid output path
+        if output_path is None:
+            write_on_disk = False
+        else:
+            write_on_disk = True
+
         # Load data and model
         runs = Data.load(self.RUNS_DATA % self.args.output)
         benchmark_data = Data.load(self.BENCHMARK_DATA % self.args.output)
-        nn = get_model(model_type, runs, f'{output_path}/{model_type}')
-        nn.search_and_load_model()
+        if nn is None:
+            if write_on_disk:
+                nn = get_model(model_type, runs)
+                nn.search_and_load_model(f'{output_path}/{model_type}')
+            else:
+                error('Error: benchmark called without a model or a path')
+        else:
+            if model_type != nn.model_type:
+                error('Error: model_type mismatch during benchmark call')
 
         # Initialize variables and folder
         benchmark_chi2 = np.zeros(benchmark_data.y.shape[0])
         benchmark_mean_relative_difference = np.zeros(benchmark_data.y.shape[0])
         benchmark_results = {}
         benchmark_results['single_closure_test_results'] = []
-        make_dir(f'{output_path}/benchmark')
+        if write_on_disk:
+            make_dir(f'{output_path}/benchmark')
 
         # Calculate best parameters for each benchmark run
         for index in range(benchmark_data.y.shape[0]):
             info(f'\n [======= Tuning benchmark run {index+1}/{benchmark_data.y.shape[0]}  =======]')
             
+            if write_on_disk:
+                current_output_path = f'{output_path}/benchmark/closure_test_{index+1}'
+                make_dir(current_output_path)
+            else:
+                current_output_path = None
+
             # Get the predicted parameters, discriminating between direct and inverse models
-            make_dir(f'{output_path}/benchmark/closure_test_{index+1}')
             if model_type == 'DirectModel':
 
                 # Minimizer choice
                 if minimizer_type == 'CMAES':
                     m = CMAES(runs, benchmark_data, nn,
-                            f'{output_path}/benchmark/closure_test_{index+1}', truth_index=index,
+                            current_output_path, truth_index=index,
                             useBounds=self.config.bounds, restarts=self.config.restarts)
                 else:
+
+                    # Clear previous GradientMinimizer instances while preserving the model 
+                    model_configs = [per_bin_nn.model.get_config() for per_bin_nn in nn.per_bin_nns]
+                    model_weights = [per_bin_nn.model.get_weights() for per_bin_nn in nn.per_bin_nns]
+                    K.clear_session()
+                    for i in range(len(model_configs)):
+                        nn.per_bin_nns[i].model = Sequential.from_config(model_configs[i])
+                        nn.per_bin_nns[i].model.set_weights(model_weights[i])
+
                     m = GradientMinimizer(runs, benchmark_data, nn,
-                            f'{output_path}/benchmark/closure_test_{index+1}', truth_index=index)
+                            current_output_path, truth_index=index)
 
                 # Get the predicted parameters
                 best_x, best_std = m.minimize()
@@ -306,8 +345,8 @@ class App(object):
         # Load data and model
         runs = Data.load(self.RUNS_DATA % self.args.output)
         expdata = Data.load(self.EXP_DATA % self.args.output)
-        nn = get_model(self.config.model_type, runs, f'{self.args.output}/{self.config.model_type}')
-        nn.search_and_load_model()
+        nn = get_model(self.config.model_type, runs)
+        nn.search_and_load_model(f'{self.args.output}/{self.config.model_type}')
 
         # Get the predicted parameters, discriminating between direct and inverse models
         if self.config.model_type == 'DirectModel':
@@ -348,7 +387,7 @@ class App(object):
             result = m.get_fmin_output()
 
             show('\n- Correlation matrix:')
-            corr = result[-2].correlation_matrix()
+            corr = result[-2].sm.correlation_matrix
             for row in corr:
                 show(row)
 
@@ -423,6 +462,12 @@ class App(object):
                 show("\n- WARNING: Can't find benchmark results, please run benchmark mode first!")
                 show("  Benchmark mode disabled.")
 
+        # Add optimization results, if possible
+        try:
+            display_output['optimize_results'] = pickle.load(open(f'{self.args.output}/data/optimize.p', 'rb'))
+        except:
+            show("\n- WARNING: Can't find optimize mode results, optimize mode disabled.")
+
         rep.save(display_output)
 
         success('\n [======= Tune Completed =======]\n')
@@ -445,9 +490,27 @@ class App(object):
 
         # Print the results
         best_config = space_eval(self.config.model_scan_setup, best_config)
+        best_loss = trials.best_trial['result']['loss']
+        best_loss_error = trials.best_trial['result']['loss_variance']
         show("\n- Best configuration:")
         for key, content in best_config.items():
             show(f"  ==] {key}: {content}")
+        show(f"  Best loss: {best_loss}")
+        show(f"  Best loss error: {best_loss_error}")
+
+        # Add the configurations to the trials
+        for i, trial in enumerate(trials.trials):
+            configuration = {key: value[0] for key, value in trial['misc']['vals'].items() if len(value) > 0}
+            configuration = space_eval(self.config.model_scan_setup, configuration)
+            trials.trials[i]['configuration'] = [{'key': key, 'value': value} for key, value in configuration.items()]
+
+        # Storing search results
+        results = {'max_evals': self.config.max_evals,
+                   'search_space': self.config.list_model_scan_setup,
+                   'best_results': trials.best_trial['result'],
+                   'trials': trials.trials}
+        results['best_config'] = [{'key': key, 'value': value} for key, value in best_config.items()]
+        pickle.dump(results, open(f'{self.args.output}/data/optimize.p', 'wb'))
 
         success('\n [======= Optimize Completed =======]\n')
     
@@ -465,8 +528,8 @@ class App(object):
         setup['actfunction'] = configuration_dictionary['actfunction']
 
         # Create the model and run a benchmark on it
-        self.create_model(self.config.scratch_folder, self.config.model_type, setup)
-        benchmark_results = self.benchmark(self.config.scratch_folder, self.config.model_type, self.config.minimizer_type)
+        model = self.create_model(self.config.model_type, setup)
+        benchmark_results = self.benchmark(self.config.model_type, self.config.minimizer_type, nn = model)
 
         return benchmark_results
 

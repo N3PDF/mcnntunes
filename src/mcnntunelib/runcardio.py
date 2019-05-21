@@ -49,11 +49,10 @@ class Config(object):
             restarts: (only for CMAES)
 
         hyperparameter_scan:
-            scratch_folder:
             max_evals:
             cluster:
-                cluster_url:
-                cluster_exp_key:
+                url:
+                exp_key:
             model:
                 architecture:
                 actfunction:
@@ -141,9 +140,9 @@ class Config(object):
 
         # Hyperparameters scan subsection
         try:
-            self.scratch_folder = self.get('hyperparameter_scan', 'scratch_folder')
-            self.max_evals = self.get('hyperparameter_scan', 'max_evals')
-            self.model_scan_setup = self.get('hyperparameter_scan','model')
+            self.max_evals = self.content['hyperparameter_scan']['max_evals']
+            self.model_scan_setup = self.content['hyperparameter_scan']['model']
+            self.list_model_scan_setup = [{'key': key, 'value': str(content)} for key, content in self.model_scan_setup.items()]
             self.enable_hyperparameter_scan = True
         except:
             self.enable_hyperparameter_scan = False
@@ -152,7 +151,7 @@ class Config(object):
         if self.enable_hyperparameter_scan:
             
             try:
-                cluster_settings = self.get('hyperparameter_scan', 'cluster')
+                cluster_settings = self.content['hyperparameter_scan']['cluster']
                 self.enable_cluster = True
             except:
                 self.enable_cluster = False

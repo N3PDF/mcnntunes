@@ -26,7 +26,7 @@ class Report(object):
     def save(self, dictionary):
         """"""
         templates = ['index.html','data.html','model.html','benchmark.html',
-                     'minimization.html','raw.html','config.html']
+                     'minimization.html','raw.html','config.html','optimize.html']
 
         for item in templates:
             template = self.env.get_template(item)

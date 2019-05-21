@@ -10,7 +10,6 @@ import numpy as np
 from .tools import show, error, make_dir
 from keras.models import Sequential, load_model
 from keras.layers.core import Dense
-import keras.backend as K
 import matplotlib.pyplot as plt
 
 
@@ -19,7 +18,6 @@ def build_model(input_dim=None, output_dim=1,
                 architecture=None, actfunction=None,
                 init='glorot_uniform'):
     """build neural network model"""
-    K.clear_session()
     model = Sequential()
 
     nsizes = [input_dim] + [l for l in architecture] + [output_dim]
@@ -34,10 +32,9 @@ def build_model(input_dim=None, output_dim=1,
 class Model(ABC):
     """Abstract class for a generic model"""
 
-    def __init__(self, runs, output_path, seed = 0):
+    def __init__(self, runs, seed = 0):
         """Store data attributes"""
         self.runs = runs
-        self.output_path = output_path
         self.seed = seed
         self.READY = False
 
@@ -46,7 +43,11 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def search_and_load_model(self):
+    def save_model_and_plots(self, output_path):
+        pass
+
+    @abstractmethod
+    def search_and_load_model(self, input_path):
         pass
 
     @abstractmethod
@@ -55,33 +56,46 @@ class Model(ABC):
 
 class DirectModel(Model):
     """This model predicts the MC run output giving the input parameters."""
+
+    def __init__(self, runs, seed = 0):
+        """Set data attributes"""
+        Model.__init__(self, runs, seed = 0)
+        self.model_type = 'DirectModel'
     
     def build_and_train_model(self, setup):
         """Build and train n_bins FullyConnected models"""
-        make_dir(f'{self.output_path}')
         
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
             nn = PerBinModel(self.seed)
-            make_dir(f'{self.output_path}/model_bin_{bin}')
             show(f'\n- Fitting bin {bin}')
             nn.fit(self.runs.x_scaled, self.runs.y_scaled[:,bin-1], setup)
-            save(nn.model, nn.loss, f'{self.output_path}/model_bin_{bin}/model.h5')
-            nn.plot(f'{self.output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])
             self.per_bin_nns.append(nn)
 
         # Update READY flag
         self.READY = True
 
-    def search_and_load_model(self):
-        """Search for models in the output path (and load them)."""
+    def save_model_and_plots(self, output_path):
+        """Save model, losses and plots in the output path"""
+        if not self.READY:
+            error('Error: nothing to save, call build_and_train_model or search_and_load_model first.')
+ 
+        make_dir(f'{output_path}')
+
+        for bin in range(1, self.runs.y.shape[1]+1):
+            make_dir(f'{output_path}/model_bin_{bin}')
+            save(self.per_bin_nns[bin-1].model, self.per_bin_nns[bin-1].loss, f'{output_path}/model_bin_{bin}/model.h5')
+            self.per_bin_nns[bin-1].plot(f'{output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])        
+
+    def search_and_load_model(self, input_path):
+        """Search for models in the input path (and load them)."""
         if self.READY:
             error('Error: loading model into a ready-to-predict model object.')
 
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
             nn = PerBinModel()
-            nn.model, nn.loss = load(f'{self.output_path}/model_bin_{bin}/model.h5')
+            nn.model, nn.loss = load(f'{input_path}/model_bin_{bin}/model.h5')
             nn.model.name = f'bin_predictor_{bin}'
             self.per_bin_nns.append(nn)
 
@@ -149,15 +163,19 @@ class PerBinModel(object):
 class InverseModel(Model):
     """ This model predicts the input parameters giving the MC run output"""
 
+    def __init__(self, runs, seed = 0):
+        """Set data attributes"""
+        Model.__init__(self, runs, seed = 0)
+        self.model_type = 'InverseModel'
+
     def build_and_train_model(self, setup):
         """Build and train a FullyConnected model"""
-        make_dir(f'{self.output_path}')
 
         # Allocate random seed
         np.random.seed(self.seed)
 
         # Print setup
-        show('\n- Using no scan setup:')
+        show('\n- Setup:')
         for key in setup.keys():
             show('  - %s : %s' % (key, setup.get(key)))
 
@@ -171,19 +189,27 @@ class InverseModel(Model):
         self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
         show('\n- Final loss function: %f' % self.loss[-1])
 
-        # Save the losses and the model
-        save(self.model, self.loss, f'{self.output_path}/model.h5')
-        plot_losses(self.output_path, self.loss)
 
         # Update READY flag
         self.READY = True
 
-    def search_and_load_model(self):
-        """Search for a model in the output path (and load it)."""
+    def save_model_and_plots(self, output_path):
+        """Save model, losses and plots in the output path"""
+        if not self.READY:
+            error('Error: nothing to save, call build_and_train_model or search_and_load_model first.')
+        
+        make_dir(f'{output_path}')
+
+        # Save the losses and the model
+        save(self.model, self.loss, f'{output_path}/model.h5')
+        plot_losses(output_path, self.loss)
+
+    def search_and_load_model(self, input_path):
+        """Search for a model in the input path (and load it)."""
         if self.READY:
             error('Error: loading model into an already complete model object.')
 
-        self.model, self.loss = load(f'{self.output_path}/model.h5')
+        self.model, self.loss = load(f'{input_path}/model.h5')
 
         # Update READY flag
         self.READY = True
@@ -205,12 +231,12 @@ class InverseModel(Model):
 
         return prediction
 
-def get_model(model_type, runs, output_path, seed = 0):
+def get_model(model_type, runs, seed = 0):
     """Return a Model object, discriminating between different model type"""
     if model_type == 'DirectModel':
-        return DirectModel(runs, output_path, seed)
+        return DirectModel(runs, seed)
     elif model_type == 'InverseModel':
-        return InverseModel(runs, output_path, seed)
+        return InverseModel(runs, seed)
     else:
         error('Error: invalid model type.')
 
