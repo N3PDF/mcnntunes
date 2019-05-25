@@ -5,6 +5,8 @@ Performs MC tunes using Neural Networks
 """
 
 # ISSUE: Error estimation with InverseModel and GradientMinimizer
+# TODO: Improve the log management with the parallel search
+# TODO: Improve the data management in the benchmark mode
 # TODO: Improve HTML report when using InverseModel
 # TODO: Add more options for the models
 
@@ -15,7 +17,7 @@ from .yodaio import Data
 from .nnmodel import get_model
 from .minimizer import CMAES, GradientMinimizer
 from .report import Report
-from .tools import make_dir, show, info, success, error, __version__, __author__
+from .tools import make_dir, show, info, success, error, __version__, __author__, log_check
 import mcnntunelib.stats as stats
 import numpy as np
 from hyperopt import fmin as fminHyperOpt
@@ -210,7 +212,7 @@ class App(object):
 
         return nn
 
-    def benchmark(self, model_type, minimizer_type, output_path = None, nn = None):
+    def benchmark(self, model_type, minimizer_type, output_path = None, nn = None, verbose = True):
         """
         This function performs a closure test of the tuning procedure: for each MC run in the benchmark dataset,
         it performs the Mcnntune tuning procedure using the MC run as the experimental data,
@@ -251,7 +253,9 @@ class App(object):
 
         # Calculate best parameters for each benchmark run
         for index in range(benchmark_data.y.shape[0]):
-            info(f'\n [======= Tuning benchmark run {index+1}/{benchmark_data.y.shape[0]}  =======]')
+
+            if verbose:
+                info(f'\n [======= Tuning benchmark run {index+1}/{benchmark_data.y.shape[0]}  =======]')
             
             if write_on_disk:
                 current_output_path = f'{output_path}/benchmark/closure_test_{index+1}'
@@ -306,12 +310,13 @@ class App(object):
                                                                         'average_relative_difference': benchmark_mean_relative_difference[index]})
 
             # Printing the results
-            show("\n- {0:30} {1:30} {2:30} {3:30}".format("Params","True value","Predicted value","Error"))
-            for row in closure_test_results:
-                show("  {0:30} {1:30} {2:30} {3:30}".format(row['params'],row['true_params'],
-                                                                    row['predicted_params'],row['errors']))
-            show("\n- Average chi2/dof: %f" % benchmark_chi2[index])
-            show("\n- Average relative difference: %f %%" % benchmark_mean_relative_difference[index])
+            if verbose:
+                show("\n- {0:30} {1:30} {2:30} {3:30}".format("Params","True value","Predicted value","Error"))
+                for row in closure_test_results:
+                    show("  {0:30} {1:30} {2:30} {3:30}".format(row['params'],row['true_params'],
+                                                                        row['predicted_params'],row['errors']))
+                show("\n- Average chi2/dof: %f" % benchmark_chi2[index])
+                show("\n- Average relative difference: %f %%" % benchmark_mean_relative_difference[index])
 
         # Storing benchmark results
         benchmark_results['chi2'] = np.mean(benchmark_chi2)
@@ -323,7 +328,7 @@ class App(object):
             pickle.dump(benchmark_results, open('%s/data/benchmark.p' % self.args.output, 'wb'))
 
         # Printing benchmark results
-        show("\n##################################################\n")
+        show("\n##################################################")
         show("\n- Total average chi2/dof: %f +- %f" % (benchmark_results['chi2'], benchmark_results['chi2_error']))
         show("\n- Total average relative difference: %f %% +- %f %%" %
                 (benchmark_results['average_relative_difference'], benchmark_results['average_relative_difference_error']))
@@ -334,6 +339,9 @@ class App(object):
         benchmark_results['status'] = STATUS_OK
         benchmark_results['loss'] = benchmark_results['average_relative_difference']
         benchmark_results['loss_variance'] = benchmark_results['average_relative_difference_error']
+
+        # Delete the details of each single closure test
+        del benchmark_results['single_closure_test_results']
 
         return benchmark_results
 
@@ -517,6 +525,9 @@ class App(object):
     def objective(self, configuration_dictionary):
         """The objective function for the hyperparameter scan"""
 
+        # Check log
+        log_check()
+
         # Setting up the configurations
         setup = {}
         setup['nb_epoch'] = configuration_dictionary['epochs']
@@ -529,7 +540,7 @@ class App(object):
 
         # Create the model and run a benchmark on it
         model = self.create_model(self.config.model_type, setup)
-        benchmark_results = self.benchmark(self.config.model_type, self.config.minimizer_type, nn = model)
+        benchmark_results = self.benchmark(self.config.model_type, self.config.minimizer_type, nn = model, verbose = False)
 
         return benchmark_results
 
