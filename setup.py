@@ -16,7 +16,7 @@ setup(name= "mcnntune",
                      'mcnntune = scripts.mcnntune:main' ]},
       package_dir = {'': 'src'},
       packages = find_packages('src'),
-      package_data = {
+      package_data = {'':['*.html']
        },
       install_requires=[
       ],
