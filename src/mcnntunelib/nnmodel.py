@@ -10,6 +10,7 @@ import numpy as np
 from .tools import show, error, make_dir
 from keras.models import Sequential, load_model
 from keras.layers.core import Dense
+from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 import matplotlib.pyplot as plt
 
 
@@ -129,15 +130,19 @@ class PerBinModel(object):
 
     def fit(self, x, y, setup):
         """apply fitting procedure"""
-        show('\n- Using no scan setup:')
-        for key in setup.keys():
-            show('  - %s : %s' % (key, setup.get(key)))
 
-        self.model = build_model(x.shape[1], 1,
-                                 setup['optimizer'], 'mse',
-                                 setup['architecture'], setup['actfunction'])
+        # Check and print setup
+        fixed_setup = fix_setup_dictionary(setup)
+        show('\n- Setup:')
+        for key in fixed_setup.keys():
+            if key in fixed_setup["default_settings"]:
+                show('  - %s : %s (default)' % (key, fixed_setup.get(key)))
+            elif key != 'default_settings':
+                show('  - %s : %s' % (key, fixed_setup.get(key)))
 
-        h = self.model.fit(x, y, epochs=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
+        self.model = build_model(x.shape[1], 1, get_optimizer(fixed_setup), 'mse', fixed_setup['architecture'],
+                                    fixed_setup['actfunction'], fixed_setup["initializer"])
+        h = self.model.fit(x, y, epochs=fixed_setup['epochs'], batch_size=fixed_setup['batch_size'], verbose=0)
         self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
         show('\n- Final loss function: %f' % self.loss[-1])
 
@@ -174,18 +179,23 @@ class InverseModel(Model):
         # Allocate random seed
         np.random.seed(self.seed)
 
-        # Print setup
+        # Check and print setup
+        fixed_setup = fix_setup_dictionary(setup)
         show('\n- Setup:')
-        for key in setup.keys():
-            show('  - %s : %s' % (key, setup.get(key)))
+        for key in fixed_setup.keys():
+            if key in fixed_setup["default_settings"]:
+                show('  - %s : %s (default)' % (key, fixed_setup.get(key)))
+            elif key != 'default_settings':
+                show('  - %s : %s' % (key, fixed_setup.get(key)))
 
         # Rename inputs and outputs for readability
         x = self.runs.y_scaled
         y = self.runs.x_scaled
 
         # Build and train the model
-        self.model = build_model(x.shape[1], y.shape[1], setup['optimizer'], 'mse', setup['architecture'], setup['actfunction'])
-        h = self.model.fit(x, y, epochs=setup['nb_epoch'], batch_size=setup['batch_size'], verbose=0)
+        self.model = build_model(x.shape[1], y.shape[1], get_optimizer(fixed_setup), 'mse',
+                                    fixed_setup['architecture'], fixed_setup['actfunction'], fixed_setup['initializer'])
+        h = self.model.fit(x, y, epochs=fixed_setup['epochs'], batch_size=fixed_setup['batch_size'], verbose=0)
         self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
         show('\n- Final loss function: %f' % self.loss[-1])
 
@@ -273,3 +283,99 @@ def plot_losses(path, training_loss, validation_loss = None):
     plt.legend()
     plt.savefig(f'{path}/loss.svg')
     plt.close()
+
+def fix_setup_dictionary(setup):
+    """
+    This function checks if the setup dictionary has some missing keys
+    (which will be replaced by a default value); moreover, it checks for
+    unrecognised keys, which are probably typos.
+    """
+
+    fixed_setup = {}
+    default_settings = []
+    try:
+        fixed_setup["actfunction"] = setup["actfunction"]
+    except:
+        fixed_setup["actfunction"] = "tanh"
+        default_settings.append("actfunction")
+    try:
+        fixed_setup["architecture"] = setup["architecture"]
+    except:
+        fixed_setup["architecture"] = [5, 5]
+        default_settings.append("architecture")
+    try:
+        fixed_setup["batch_size"] = setup["batch_size"]
+    except:
+        fixed_setup["batch_size"] = 16
+        default_settings.append("batch_size")
+    try:
+        fixed_setup["epochs"] = setup["epochs"]
+    except:
+        fixed_setup["epochs"] = 5000
+        default_settings.append("epochs")
+    try:
+        fixed_setup["initializer"] = setup["initializer"]
+    except:
+        fixed_setup["initializer"] = 'glorot_uniform'
+        default_settings.append("initializer")
+    try:
+        fixed_setup["optimizer"] = setup["optimizer"]
+    except:
+        fixed_setup["optimizer"] = "adam"
+        default_settings.append("optimizer")
+    try:
+        fixed_setup["optimizer_lr"] = setup["optimizer_lr"]
+    except:
+        fixed_setup["optimizer_lr"] = None
+        default_settings.append("optimizer_lr")
+
+    # Check if the setup dictionary has some unrecognised keys
+    if len(setup) + len(default_settings) != len(fixed_setup):
+        error('Error: unrecognised keys in the setup dictionary!')
+
+    # Add the default values
+    fixed_setup["default_settings"] = default_settings
+
+    return fixed_setup
+
+def get_optimizer(setup):
+    """
+    Return the optimizer specified in the "setup" dictionary.
+    Optional keys:
+        - setup["optimizer"]: optimizer in string format (default "adam")
+        - setup["optimizer_lr"]: the learning rate (float >= 0)
+    """
+
+    # Return the right optimizer
+    if setup['optimizer_lr'] is None:
+        if setup["optimizer"] == "sgd":
+            optimizer = SGD()
+        elif setup["optimizer"] == "rmsprop":
+            optimizer = RMSprop()
+        elif setup["optimizer"] == "adagrad":
+            optimizer = Adagrad()
+        elif setup["optimizer"] == "adadelta":
+            optimizer = Adadelta()
+        elif setup["optimizer"] == "adam":
+            optimizer = Adam()
+        elif setup["optimizer"] == "adamax":
+            optimizer = Adamax()
+        elif setup["optimizer"] == "nadam":
+            optimizer = Nadam()
+    else:
+        if setup["optimizer"] == "sgd":
+            optimizer = SGD(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "rmsprop":
+            optimizer = RMSprop(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "adagrad":
+            optimizer = Adagrad(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "adadelta":
+            optimizer = Adadelta(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "adam":
+            optimizer = Adam(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "adamax":
+            optimizer = Adamax(lr=setup['optimizer_lr'])
+        elif setup["optimizer"] == "nadam":
+            optimizer = Nadam(lr=setup['optimizer_lr'])
+    
+    return optimizer

@@ -66,6 +66,28 @@
 
     <h2>Trials</h2>
 
+    <figure>
+        <img src="plots/hyper_scan_actfunction.svg" alt="Hyperparameter scan summary - actfunction">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_batch_size.svg" alt="Hyperparameter scan summary - batch_size">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_epochs.svg" alt="Hyperparameter scan summary - epochs">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_initializer.svg" alt="Hyperparameter scan summary - initializer">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_optimizer.svg" alt="Hyperparameter scan summary - optimizer">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_optimizer_lr.svg" alt="Hyperparameter scan summary - optimizer_lr">
+    </figure>
+    <figure>
+        <img src="plots/hyper_scan_architecture.svg" alt="Hyperparameter scan summary - architecture">
+    </figure>
+
     {% for trial in optimize_results.trials %}
 
     <p><b>Trial {{loop.index}}:</b></p>

@@ -289,8 +289,8 @@ class App(object):
 
             else:
                 # For the InverseModel it's only an inference
-                y = benchmark_data.y_scaled[index,:].reshape(1,benchmark_data.y_scaled.shape[1])
-                best_x = nn.predict(y, scaled_y = False)
+                y = benchmark_data.y[index,:].reshape(1,benchmark_data.y.shape[1])
+                best_x = nn.predict(y, scaled_x = False, scaled_y = False)
                 best_std = np.ones(runs.x.shape[1]) # ISSUE
 
             # Get the true parameters
@@ -372,8 +372,8 @@ class App(object):
 
         else:
             # For the InverseModel it's only an inference
-            y = expdata.y_scaled[0,:].reshape(1,expdata.y_scaled.shape[1])
-            best_x = nn.predict(y, scaled_y = False)
+            y = expdata.y[0,:].reshape(1,expdata.y.shape[1])
+            best_x = nn.predict(y, scaled_x = False, scaled_y = False)
             best_std = np.ones(runs.x.shape[1]) # ISSUE
 
         info('\n [======= Result Summary =======]')
@@ -473,8 +473,13 @@ class App(object):
         # Add optimization results, if possible
         try:
             display_output['optimize_results'] = pickle.load(open(f'{self.args.output}/data/optimize.p', 'rb'))
+            trials = pickle.load(open(f'{self.args.output}/data/trials.p', 'rb'))
+            trials_is_defined = True
         except:
             show("\n- WARNING: Can't find optimize mode results, optimize mode disabled.")
+            trials_is_defined = False
+        if trials_is_defined:
+            rep.plot_hyperscan_analysis(trials)
 
         rep.save(display_output)
 
@@ -520,6 +525,9 @@ class App(object):
         results['best_config'] = [{'key': key, 'value': value} for key, value in best_config.items()]
         pickle.dump(results, open(f'{self.args.output}/data/optimize.p', 'wb'))
 
+        # Store the trials object
+        pickle.dump(trials, open(f'{self.args.output}/data/trials.p', 'wb'))
+
         success('\n [======= Optimize Completed =======]\n')
     
     def objective(self, configuration_dictionary):
@@ -528,18 +536,16 @@ class App(object):
         # Check log
         log_check()
 
-        # Setting up the configurations
-        setup = {}
-        setup['nb_epoch'] = configuration_dictionary['epochs']
-        setup['optimizer'] = configuration_dictionary['optimizer']
-        setup['batch_size'] = configuration_dictionary['batch_size']
-        setup['architecture'] = []
-        for size in configuration_dictionary['architecture']:
-            setup['architecture'].append(int(size))
-        setup['actfunction'] = configuration_dictionary['actfunction']
+        # Fixing the configuration
+        try:
+            configuration_dictionary['epochs'] = int(configuration_dictionary['epochs'])
+            configuration_dictionary['batch_size'] = int(configuration_dictionary['batch_size'])
+            configuration_dictionary['architecture'] = [int(size) for size in configuration_dictionary['architecture']]
+        except Exception:
+            pass
 
         # Create the model and run a benchmark on it
-        model = self.create_model(self.config.model_type, setup)
+        model = self.create_model(self.config.model_type, configuration_dictionary)
         benchmark_results = self.benchmark(self.config.model_type, self.config.minimizer_type, nn = model, verbose = False)
 
         return benchmark_results

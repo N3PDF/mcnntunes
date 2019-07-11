@@ -37,11 +37,13 @@ class Config(object):
             model_type: 'DirectModel' or 'InverseModel'
             seed:
             noscan_setup:
-                architecture:
-                actfunction:
-                optimizer:
-                epochs:
-                batch_size:
+                architecture: (optional, default [5, 5])
+                actfunction: (optional, default 'tanh')
+                optimizer: (optional, default "adam")
+                optimizer_rl: (optional)
+                initializer: (optional, default "glorot_uniform")
+                epochs: (optional, default 5000)
+                batch_size: (optional, default 16)
 
         minimizer: (only for 'DirectModel')
             minimizer_type: 'CMAES' or 'GradientMinimizer'
