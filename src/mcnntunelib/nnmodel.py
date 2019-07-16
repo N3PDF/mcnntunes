@@ -135,10 +135,12 @@ class PerBinModel(object):
         fixed_setup = fix_setup_dictionary(setup)
         show('\n- Setup:')
         for key in fixed_setup.keys():
-            if key in fixed_setup["default_settings"]:
+            if (key in fixed_setup["default_settings"] and key != 'data_augmentation'):
                 show('  - %s : %s (default)' % (key, fixed_setup.get(key)))
-            elif key != 'default_settings':
+            elif (key != 'default_settings' and key != 'data_augmentation'):
                 show('  - %s : %s' % (key, fixed_setup.get(key)))
+        if fixed_setup["data_augmentation"]:
+            show("  Warning: data augmentation not available with this model.")
 
         self.model = build_model(x.shape[1], 1, get_optimizer(fixed_setup), 'mse', fixed_setup['architecture'],
                                     fixed_setup['actfunction'], fixed_setup["initializer"])
@@ -189,19 +191,44 @@ class InverseModel(Model):
                 show('  - %s : %s' % (key, fixed_setup.get(key)))
 
         # Rename inputs and outputs for readability
-        x = self.runs.y_scaled
+        x = self.weight_mask(self.runs.y_scaled)
         y = self.runs.x_scaled
+        x_err = self.weight_mask(self.runs.yerr / self.runs.y_std)
 
-        # Build and train the model
+        # Build the model
         self.model = build_model(x.shape[1], y.shape[1], get_optimizer(fixed_setup), 'mse',
                                     fixed_setup['architecture'], fixed_setup['actfunction'], fixed_setup['initializer'])
-        h = self.model.fit(x, y, epochs=fixed_setup['epochs'], batch_size=fixed_setup['batch_size'], verbose=0)
-        self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
+        #Train the model
+        if not fixed_setup['data_augmentation']: # standard procedure
+            h = self.model.fit(x, y, epochs=fixed_setup['epochs'], batch_size=fixed_setup['batch_size'], verbose=0)
+            self.loss = h.history['loss'] + [self.model.evaluate(x,y,verbose=0)]
+        else: # data augmentation
+            self.loss = []
+            for i in range(fixed_setup['epochs']):
+                h = self.model.fit(self.gaussian_noise(x, x_err), y, initial_epoch=i, epochs=i+1, batch_size=fixed_setup['batch_size'], verbose=0)
+                self.loss.append(h.history['loss'][-1])
+            self.loss.append(self.model.evaluate(x,y,verbose=0))
+
+        # Print final loss function
         show('\n- Final loss function: %f' % self.loss[-1])
 
 
         # Update READY flag
         self.READY = True
+
+    def gaussian_noise(self, x, x_err):
+        """Add a gaussian noise with a different stddev for each bin of each run,
+        according to the MC errors."""
+
+        return x + x_err*np.random.normal(0., 1., x_err.shape)
+
+    def weight_mask(self, x):
+        """Removes the zero-weighted inputs from the dataset matrix.
+        Use the convention rows=samples, cols=bins"""
+        
+        boolean_weight_mask = (self.runs.y_weight != 0)
+
+        return x[:,boolean_weight_mask]
 
     def save_model_and_plots(self, output_path):
         """Save model, losses and plots in the output path"""
@@ -234,7 +261,7 @@ class InverseModel(Model):
         if not scaled_x:
             x = self.runs.scale_y(x)
 
-        prediction = self.model.predict(x).reshape(-1)
+        prediction = self.model.predict(self.weight_mask(x)).reshape(-1)
 
         if not scaled_y:
             prediction = self.runs.unscale_x(prediction)
@@ -328,6 +355,11 @@ def fix_setup_dictionary(setup):
     except:
         fixed_setup["optimizer_lr"] = None
         default_settings.append("optimizer_lr")
+    try:
+        fixed_setup["data_augmentation"] = setup["data_augmentation"]
+    except:
+        fixed_setup["data_augmentation"] = False
+        default_settings.append("data_augmentation")
 
     # Check if the setup dictionary has some unrecognised keys
     if len(setup) + len(default_settings) != len(fixed_setup):

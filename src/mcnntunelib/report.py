@@ -261,135 +261,143 @@ class Report(object):
     def plot_hyperscan_analysis(self, trials):
         """"""
 
+        # List with available plots
+        # for the HMTL report
+        available_plots = []
+
         # Extract some data from the trials object
-        data = {'loss': [], 'nb_layers': [], 'average_units_per_layer': []}
+        data = {'iteration': [], 'loss': []}
         # Scan tuned settings using the first trial
         for conf in trials.trials[0]['configuration']:
             data[conf['key']] = []
-        # Load data
+            # Additional data if architecture was tuned
+            if conf['key'] == 'architecture':
+                architecture_info = {'nb_hidden_layers': [], 'average_units_per_layer': []}
+        # Load data, while search for the best trial
+        best_loss = 1000
+        best_id = -1
         for trial in trials.trials:
+            # Filter bad scans
+            if trial['state'] != 2:
+                continue
+            # Load iteration number and loss
+            data['iteration'].append(trial['tid'])
             data['loss'].append(trial['result']['loss'])
-            for conf in trial['configuration']:
+            # Search for the best trial
+            if data['loss'][-1] < best_loss:
+                best_loss = data['loss'][-1]
+                best_id = data['iteration'][-1]
+            # Load all tuned hyperparameters
+            for conf in trial['configuration']:  
                 data[conf['key']].append(conf['value'])
+            # Try to load additional data if architecture was tuned
             try:
-                data['nb_layers'].append(len(data['architecture'][-1]))
-                data['average_units_per_layer'].append(np.rint(np.mean(data['architecture'][-1])))
-            except KeyError:
+                architecture_info['nb_hidden_layers'].append(len(data['architecture'][-1]))
+                architecture_info['average_units_per_layer'].append(np.rint(np.mean(data['architecture'][-1])))
+            except Exception:
                 pass
-        # Delete empty lists
-        try:
-            data['architecture']
-        except KeyError:
-            del data['nb_layers']
-            del data['average_units_per_layer']
 
-        # Create a pandas dataframe
+        # Create a pandas dataframe for the trials,
+        # and one for the best trial only
         df = pd.DataFrame(data=data)
+        best_df = df[df['iteration'] == best_id]
         show('\n - Hyperparameter scan summary:\n')
         show(df)
+        show('\n - Best trial:\n')
+        show(best_df)
 
         # Plot loss against hyperparameters summary
-        fig, ax = plt.subplots(2,3,figsize=(25,9))
-        try:
-            # Actfunction
-            sns.catplot(x='actfunction', y='loss', kind='violin', data=df, ax=ax[0][0])
-            ax[0][0].set_xlabel('activation function')
+        num_plots = len(data) - 2 # substract losses and iterations
+        try: # subtract the architecture
+            architecture_info
+            num_plots -= 1
         except Exception:
             pass
-        try:
-            # Batch size
-            sns.relplot(x='batch_size', y='loss', data=df, ax=ax[0][1])
-            ax[0][1].set_xlabel('batch size')
-        except Exception:
-            pass
-        # Epochs
-        try:
-            sns.relplot(x='epochs', y='loss', data=df, ax=ax[0][2])
-        except Exception:
-            pass
-        # Initializer
-        try:
-            sns.catplot(x='initializer', y='loss', kind='violin', data=df, ax=ax[1][0])
-        except Exception:
-            pass
-        # Optimizer
-        try:
-            sns.catplot(x='optimizer', y='loss', kind='violin', data=df, ax=ax[1][1])
-        except Exception:
-            pass
-        # Optimizer learning rate
-        try:
-            sns.relplot(x='optimizer_lr', y='loss', data=df, ax=ax[1][2])
-            ax[1][2].set_xscale('log')
-            ax[1][2].set_xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
-            ax[1][2].set_xlabel('learning rate')
-        except Exception:
-            pass
+        fig, ax = plt.subplots(1, num_plots, sharey=True, figsize=(3.2*num_plots, 5))
+        current_ax = 0
+        for key in data.keys():
+
+            plt.figure()
+
+            # Discrete hyperparameters
+            if key in ('actfunction','initializer','optimizer','data_augmentation'):
+
+                # Plot best trial
+                sns.catplot(x=key, y='loss', color='red', data=best_df, kind='point', ax=ax[current_ax])
+
+                # Plot all trials
+                sns.catplot(x=key, y='loss', kind='violin', cut=0.0, data=df, ax=ax[current_ax])
+                sns.catplot(x=key, y='loss', kind='violin', cut=0.0, data=df)
+
+                # Adjust plot settings
+                if key == 'actfunction':
+                    ax[current_ax].set_xlabel('activation function')
+                    plt.xlabel('activation function')
+                elif key == 'data_augmentation':
+                    ax[current_ax].set_xlabel('data augmentation')
+                    plt.xlabel('data augmentation')
+
+            # Continuous hyperparameters
+            elif key in ('batch_size','epochs','optimizer_lr'):
+
+                # Plot all trials
+                sns.relplot(x=key, y='loss', data=df, ax=ax[current_ax])
+                sns.relplot(x=key, y='loss', hue='optimizer', data=df, style='optimizer')
+                if key == 'batch_size':
+                    ax[current_ax].set_xlabel('batch size')
+                    plt.xlabel('batch size')
+                elif key == 'optimizer_lr':
+                    ax[current_ax].set_xlabel('learning rate')
+                    ax[current_ax].set_xscale('log')
+                    ax[current_ax].set_xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
+                    plt.xlabel('learning rate')
+                    plt.xscale('log')
+                    plt.xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
+
+                # Plot best trial
+                sns.scatterplot(x=key, y='loss', color='red', data=best_df, ax=ax[current_ax], s=150)
+
+            else:
+                continue
+
+            current_ax += 1
+            plt.savefig(f'{self.path}/plots/hyper_scan_{key}.svg', bbox_inches='tight')
+            available_plots.append(f'plots/hyper_scan_{key}.svg')
+
         # Save the figure
-        fig.savefig(f'{self.path}/plots/hyper_scan.svg')
+        fig.savefig(f'{self.path}/plots/hyper_scan.svg', bbox_inches="tight")
         plt.close()
 
-        # Plot single comparisons in different files
+        # Plot pairs
+        plt.figure(figsize=(50, 50))
         try:
-            # Actfunction
-            plt.figure()
-            sns.catplot(x='actfunction', y='loss', kind='violin', data=df)
-            plt.xlabel('activation function')
-            plt.savefig(f'{self.path}/plots/hyper_scan_actfunction.svg')
-            plt.close()
+            slim_df = df.drop(['data_augmentation', 'iteration'], axis=1) # boolean type gives error
         except Exception:
-            pass
-        try:    
-            # Batch size
-            plt.figure()
-            sns.relplot(x='batch_size', y='loss', hue='optimizer', style='optimizer', data=df)
-            plt.ylabel('batch size')
-            plt.savefig(f'{self.path}/plots/hyper_scan_batch_size.svg')
-            plt.close()
-        except Exception:
-            pass
+            slim_df = df.drop('iteration', axis=1)
+        sns.pairplot(slim_df)
+        plt.savefig(f'{self.path}/plots/hyper_scan_pairplot.svg', bbox_inches='tight')
+        available_plots.append('plots/hyper_scan_pairplot.svg')
+        plt.close()
+
+        # Plot architecture comparison
         try:
-            # Epochs
             plt.figure()
-            sns.relplot(x='epochs', y='loss', hue='optimizer', style='optimizer', data=df)
-            plt.savefig(f'{self.path}/plots/hyper_scan_epochs.svg')
+            archi_df = pd.DataFrame(data=architecture_info)
+            df = df.join(archi_df)
+            best_df = df[df['iteration'] == best_id]
+            sns.relplot(x='average_units_per_layer', y='loss', row='nb_hidden_layers', data=df)
+            sns.scatterplot(x='average_units_per_layer', y='loss', color='red', data=best_df, s=150)
+            plt.xlabel('average units per layer')
+            plt.savefig(f'{self.path}/plots/hyper_scan_architecture_best.svg', bbox_inches='tight')
+            available_plots.append('plots/hyper_scan_architecture_best.svg')
             plt.close()
-        except Exception:
-            pass
-        try:
-            # Initializer
             plt.figure()
-            sns.catplot(x='initializer', y='loss', kind='violin', data=df)
-            plt.savefig(f'{self.path}/plots/hyper_scan_initializer.svg')
-            plt.close()
-        except Exception:
-            pass
-        try:
-            # Optimizer
-            plt.figure()
-            sns.catplot(x='optimizer', y='loss', kind='violin', data=df)
-            plt.savefig(f'{self.path}/plots/hyper_scan_optimizer.svg')
-            plt.close()
-        except Exception:
-            pass
-        try:
-            # Optimizer lr
-            plt.figure()
-            sns.relplot(x='optimizer_lr', y='loss', hue='optimizer', style='optimizer', data=df)
-            plt.xlabel('learning rate')
-            plt.xscale('log')
-            plt.xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
-            plt.savefig(f'{self.path}/plots/hyper_scan_optimizer_lr.svg')
+            sns.relplot(x='average_units_per_layer', y='loss', row='nb_hidden_layers', data=df, hue='optimizer', style='optimizer')
+            plt.xlabel('average units per layer')
+            plt.savefig(f'{self.path}/plots/hyper_scan_architecture.svg', bbox_inches='tight')
+            available_plots.append('plots/hyper_scan_architecture.svg')
             plt.close()
         except Exception:
             pass
 
-        try:
-            # Plot architectures comparison
-            plt.figure()
-            sns.relplot(x='average_units_per_layer', y='loss', row='nb_layers', hue='optimizer', style='optimizer', data=df)
-            plt.xlabel('average units per layer')
-            plt.savefig(f'{self.path}/plots/hyper_scan_architecture.svg')
-            plt.close()
-        except Exception:
-            pass
+        return available_plots

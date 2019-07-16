@@ -44,6 +44,7 @@ class Config(object):
                 initializer: (optional, default "glorot_uniform")
                 epochs: (optional, default 5000)
                 batch_size: (optional, default 16)
+                data_augmentation: (optional, default False, only for 'InverseModel')
 
         minimizer: (only for 'DirectModel')
             minimizer_type: 'CMAES' or 'GradientMinimizer'

@@ -479,7 +479,7 @@ class App(object):
             show("\n- WARNING: Can't find optimize mode results, optimize mode disabled.")
             trials_is_defined = False
         if trials_is_defined:
-            rep.plot_hyperscan_analysis(trials)
+            display_output['hyper_scan_plots'] = rep.plot_hyperscan_analysis(trials)
 
         rep.save(display_output)
 
@@ -539,7 +539,13 @@ class App(object):
         # Fixing the configuration
         try:
             configuration_dictionary['epochs'] = int(configuration_dictionary['epochs'])
+        except Exception:
+            pass
+        try:
             configuration_dictionary['batch_size'] = int(configuration_dictionary['batch_size'])
+        except Exception:
+            pass
+        try:
             configuration_dictionary['architecture'] = [int(size) for size in configuration_dictionary['architecture']]
         except Exception:
             pass
