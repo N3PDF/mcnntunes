@@ -11,7 +11,8 @@ Performs MC tunes using Neural Networks
 # TODO: Add more options for the models
 
 import time, pickle
-import argparse, shutil, filecmp, logging
+import argparse, shutil, filecmp, logging, copy
+import yaml
 from .runcardio import Config
 from .yodaio import Data
 from .nnmodel import get_model
@@ -503,6 +504,19 @@ class App(object):
 
         # Print the results
         best_config = space_eval(self.config.model_scan_setup, best_config)
+        # Try to cast to int architecture, batch size and layer
+        try:
+            best_config['architecture'] = [int(size) for size in best_config['architecture']]
+        except Exception:
+            pass
+        try:
+            best_config['batch_size'] = int(best_config['batch_size'])
+        except Exception:
+            pass
+        try:
+            best_config['epochs'] = int(best_config['epochs'])
+        except Exception:
+            pass
         best_loss = trials.best_trial['result']['loss']
         best_loss_error = trials.best_trial['result']['loss_variance']
         show("\n- Best configuration:")
@@ -527,6 +541,13 @@ class App(object):
 
         # Store the trials object
         pickle.dump(trials, open(f'{self.args.output}/data/trials.p', 'wb'))
+
+        # Write a runcard with the best model
+        original_runcard_dict = copy.deepcopy(self.config.content)
+        del original_runcard_dict['hyperparameter_scan']
+        original_runcard_dict['model']['noscan_setup'] = best_config
+        with open(f'{self.args.output}/best_model.yml','w') as f:
+            yaml.dump(original_runcard_dict, f, default_flow_style = False)
 
         success('\n [======= Optimize Completed =======]\n')
     
