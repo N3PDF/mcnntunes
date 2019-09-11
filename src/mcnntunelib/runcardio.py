@@ -45,6 +45,7 @@ class Config(object):
                 epochs: (optional, default 5000)
                 batch_size: (optional, default 16)
                 data_augmentation: (optional, default False, only for 'InverseModel')
+                param_estimator:(optional, only for 'InverseModel', 'SimpleInference', 'Median', 'Mean')
 
         minimizer: (only for 'DirectModel')
             minimizer_type: 'CMAES' or 'GradientMinimizer'

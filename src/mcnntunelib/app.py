@@ -4,7 +4,7 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-# ISSUE: Error estimation with InverseModel and GradientMinimizer
+# ISSUE: Error estimation with GradientMinimizer
 # TODO: Improve the log management with the parallel search
 # TODO: Improve the data management in the benchmark mode
 # TODO: Improve HTML report when using InverseModel
@@ -291,8 +291,8 @@ class App(object):
             else:
                 # For the InverseModel it's only an inference
                 y = benchmark_data.y[index,:].reshape(1,benchmark_data.y.shape[1])
-                best_x = nn.predict(y, scaled_x = False, scaled_y = False)
-                best_std = np.ones(runs.x.shape[1]) # ISSUE
+                y_err = benchmark_data.yerr[index,:].reshape(1,benchmark_data.yerr.shape[1])
+                best_x, best_std = nn.predict(y, y_err, scaled_x = False, scaled_y = False)
 
             # Get the true parameters
             true_x = benchmark_data.x[index]
@@ -374,8 +374,10 @@ class App(object):
         else:
             # For the InverseModel it's only an inference
             y = expdata.y[0,:].reshape(1,expdata.y.shape[1])
-            best_x = nn.predict(y, scaled_x = False, scaled_y = False)
-            best_std = np.ones(runs.x.shape[1]) # ISSUE
+            y_err = expdata.yerr[0,:].reshape(1,expdata.yerr.shape[1])
+            best_x, best_std, prediction_distribution = nn.predict(y, y_err, scaled_x = False,
+                                            scaled_y = False, return_distribution = True,
+                                            num_mc_step = 100000)
 
         info('\n [======= Result Summary =======]')
         
@@ -456,6 +458,11 @@ class App(object):
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
             display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
+        
+        else:
+            # Plot distribution of prediction if using InverseModel
+            rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
+                                        [element['name'] for  element in display_output['results']])
 
         with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()

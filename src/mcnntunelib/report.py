@@ -401,3 +401,30 @@ class Report(object):
             pass
 
         return available_plots
+
+    def plot_prediction_distribution(self, best_x, best_std, noisy_x, parameter_names):
+        """"""
+
+        # Create figure and axes
+        fig, axes = plt.subplots(1, best_x.shape[0], figsize=(16,5))
+
+        # Compute mean and median of the distribution
+        mean = np.mean(noisy_x, axis=1)
+        median = np.median(noisy_x, axis=1)
+
+        # Plot histos and vertical lines
+        for i in range(best_x.shape[0]):
+            axes[i].hist(noisy_x[i,:], bins='auto', fill=True, density=True)
+            axes[i].axvline(best_x[i], color='k', lw=2, label='Prediction')
+            axes[i].axvline(best_x[i]+best_std[i], color='k', lw=1, ls='--', label='1 $\sigma$')
+            axes[i].axvline(best_x[i]-best_std[i], color='k', lw=1, ls='--')
+            axes[i].axvline(mean[i], color='b', ls='--', label='Mean')
+            axes[i].axvline(median[i], color='r', ls='--', label='Median')
+            axes[i].legend()
+            axes[i].set_xlabel(parameter_names[i])
+            axes[i].set_ylabel('$p(x)$')
+        fig.suptitle('Distribution of predictions')
+        
+        # Save figure
+        fig.savefig(f'{self.path}/plots/prediction_spread.svg', bbox_inches='tight')
+        plt.close()

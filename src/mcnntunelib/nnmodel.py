@@ -85,7 +85,8 @@ class DirectModel(Model):
 
         for bin in range(1, self.runs.y.shape[1]+1):
             make_dir(f'{output_path}/model_bin_{bin}')
-            save(self.per_bin_nns[bin-1].model, self.per_bin_nns[bin-1].loss, f'{output_path}/model_bin_{bin}/model.h5')
+            save(self.per_bin_nns[bin-1].model, self.per_bin_nns[bin-1].fixed_setup, self.per_bin_nns[bin-1].loss,
+                                                                                f'{output_path}/model_bin_{bin}/model.h5')
             self.per_bin_nns[bin-1].plot(f'{output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])        
 
     def search_and_load_model(self, input_path):
@@ -96,7 +97,7 @@ class DirectModel(Model):
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
             nn = PerBinModel()
-            nn.model, nn.loss = load(f'{input_path}/model_bin_{bin}/model.h5')
+            nn.model, nn.fixed_setup, nn.loss = load(f'{input_path}/model_bin_{bin}/model.h5')
             nn.model.name = f'bin_predictor_{bin}'
             self.per_bin_nns.append(nn)
 
@@ -135,12 +136,15 @@ class PerBinModel(object):
         fixed_setup = fix_setup_dictionary(setup)
         show('\n- Setup:')
         for key in fixed_setup.keys():
-            if (key in fixed_setup["default_settings"] and key != 'data_augmentation'):
+            if (key in fixed_setup["default_settings"] and key != 'data_augmentation' and key != 'param_estimator'):
                 show('  - %s : %s (default)' % (key, fixed_setup.get(key)))
-            elif (key != 'default_settings' and key != 'data_augmentation'):
+            elif (key != 'default_settings' and key != 'data_augmentation' and key != 'param_estimator'):
                 show('  - %s : %s' % (key, fixed_setup.get(key)))
         if fixed_setup["data_augmentation"]:
             show("  Warning: data augmentation not available with this model.")
+
+        # Save setup
+        self.fixed_setup = fixed_setup
 
         self.model = build_model(x.shape[1], 1, get_optimizer(fixed_setup), 'mse', fixed_setup['architecture'],
                                     fixed_setup['actfunction'], fixed_setup["initializer"])
@@ -190,6 +194,9 @@ class InverseModel(Model):
             elif key != 'default_settings':
                 show('  - %s : %s' % (key, fixed_setup.get(key)))
 
+        # Save setup for later
+        self.fixed_setup = fixed_setup
+
         # Rename inputs and outputs for readability
         x = self.weight_mask(self.runs.y_scaled)
         y = self.runs.x_scaled
@@ -238,7 +245,7 @@ class InverseModel(Model):
         make_dir(f'{output_path}')
 
         # Save the losses and the model
-        save(self.model, self.loss, f'{output_path}/model.h5')
+        save(self.model, self.fixed_setup, self.loss, f'{output_path}/model.h5')
         plot_losses(output_path, self.loss)
 
     def search_and_load_model(self, input_path):
@@ -246,12 +253,12 @@ class InverseModel(Model):
         if self.READY:
             error('Error: loading model into an already complete model object.')
 
-        self.model, self.loss = load(f'{input_path}/model.h5')
+        self.model, self.fixed_setup, self.loss = load(f'{input_path}/model.h5')
 
         # Update READY flag
         self.READY = True
 
-    def predict(self, x, scaled_x = True, scaled_y = True):
+    def predict(self, x, x_err, scaled_x = True, scaled_y = True, return_distribution = False, num_mc_step = 10000):
         """Predicts the y passing the x. Notice that the notation is
         the opposite of the one in the Data class"""
 
@@ -260,13 +267,37 @@ class InverseModel(Model):
 
         if not scaled_x:
             x = self.runs.scale_y(x)
+            x_err /= self.runs.y_std
 
-        prediction = self.model.predict(self.weight_mask(x)).reshape(-1)
+        # Compute error by resampling the expdata many times
+        # and computing the standard deviation of the corresponding predictions
+        x_broadcasted = np.broadcast_to(x, shape=(num_mc_step, x.shape[1]))
+        x_err = np.broadcast_to(x_err, shape=(num_mc_step, x_err.shape[1]))
+        noisy_x = x_broadcasted + x_err * np.random.normal(loc=0.0, scale=1.0, size=x_err.shape)
+        
+        prediction_distribution = self.model.predict(self.weight_mask(noisy_x))
+        best_std = np.std(prediction_distribution, axis=0).reshape(-1)
+
+        # Estimate the best_x
+        if self.fixed_setup["param_estimator"] == 'SimpleInference':
+            prediction = self.model.predict(self.weight_mask(x)).reshape(-1)
+        elif self.fixed_setup["param_estimator"] == 'Median':
+            prediction = np.median(prediction_distribution, axis=0).reshape(-1)
+        elif self.fixed_setup["param_estimator"] == 'Mean':
+            prediction = np.mean(prediction_distribution, axis=0).reshape(-1)
+        else:
+            error(f'Estimator label "{estimator}" not recognised.')
 
         if not scaled_y:
             prediction = self.runs.unscale_x(prediction)
+            best_std *= self.runs.x_std
+            if return_distribution:
+                prediction_distribution = self.runs.unscale_x(prediction_distribution).T
 
-        return prediction
+        if not return_distribution:
+            return prediction, best_std
+        else:
+            return prediction, best_std, prediction_distribution
 
 def get_model(model_type, runs, seed = 0):
     """Return a Model object, discriminating between different model type"""
@@ -277,23 +308,23 @@ def get_model(model_type, runs, seed = 0):
     else:
         error('Error: invalid model type.')
 
-def save(model, loss, file):
+def save(model, setup, loss, file):
         """save model to file"""
         model.save(file)
         with h5py.File(file, 'r+') as f:
             del f['optimizer_weights']
             f.close()
 
-        pickle.dump(loss, open(f'{file}.p', 'wb'))
+        pickle.dump([setup, loss], open(f'{file}.p', 'wb'))
         show(f'\n- Model saved in {file}')
 
 def load(file):
         """load model from file"""
         model = load_model(file)
-        loss = pickle.load(open(f'{file}.p', 'rb'))
+        setup, loss = pickle.load(open(f'{file}.p', 'rb'))
         show(f'\n- Model loaded from {file}')
 
-        return model, loss
+        return model, setup, loss
 
 def plot_losses(path, training_loss, validation_loss = None):
     """"""
@@ -360,6 +391,11 @@ def fix_setup_dictionary(setup):
     except:
         fixed_setup["data_augmentation"] = False
         default_settings.append("data_augmentation")
+    try:
+        fixed_setup["param_estimator"] = setup["param_estimator"]
+    except:
+        fixed_setup["param_estimator"] = 'SimpleInference'
+        default_settings.append("param_estimator")
 
     # Check if the setup dictionary has some unrecognised keys
     if len(setup) + len(default_settings) != len(fixed_setup):
