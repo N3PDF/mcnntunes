@@ -6,13 +6,16 @@ Performs MC tunes using Neural Networks
 
 # ISSUE: Error estimation with GradientMinimizer
 # TODO: Improve the log management with the parallel search
-# TODO: Improve the data management in the benchmark mode
 # TODO: Improve HTML report when using InverseModel
 # TODO: Add more options for the models
 
-import time, pickle
-import argparse, shutil, filecmp, logging, copy
-import yaml
+import numpy as np
+import time, pickle, argparse, shutil, filecmp, logging, copy, yaml
+from hyperopt import fmin as fminHyperOpt
+from hyperopt import hp, tpe, Trials, STATUS_OK, space_eval
+from hyperopt.mongoexp import MongoTrials
+import keras.backend as K
+from keras.models import Sequential
 from .runcardio import Config
 from .yodaio import Data
 from .nnmodel import get_model
@@ -20,12 +23,6 @@ from .minimizer import CMAES, GradientMinimizer
 from .report import Report
 from .tools import make_dir, show, info, success, error, __version__, __author__, log_check
 import mcnntunelib.stats as stats
-import numpy as np
-from hyperopt import fmin as fminHyperOpt
-from hyperopt import hp, tpe, Trials, STATUS_OK, space_eval
-from hyperopt.mongoexp import MongoTrials
-import keras.backend as K
-from keras.models import Sequential
 
 
 class App(object):
@@ -339,7 +336,7 @@ class App(object):
         # Return the dictionary for the HyperOpt scan
         benchmark_results['status'] = STATUS_OK
         benchmark_results['loss'] = benchmark_results['average_relative_difference']
-        benchmark_results['loss_variance'] = benchmark_results['average_relative_difference_error']
+        benchmark_results['loss_variance'] = np.square(benchmark_results['average_relative_difference_error'])
 
         # Delete the details of each single closure test
         del benchmark_results['single_closure_test_results']
@@ -377,7 +374,7 @@ class App(object):
             y_err = expdata.yerr[0,:].reshape(1,expdata.yerr.shape[1])
             best_x, best_std, prediction_distribution = nn.predict(y, y_err, scaled_x = False,
                                             scaled_y = False, return_distribution = True,
-                                            num_mc_step = 100000)
+                                            num_mc_steps = 100000)
 
         info('\n [======= Result Summary =======]')
         
@@ -525,7 +522,7 @@ class App(object):
         except Exception:
             pass
         best_loss = trials.best_trial['result']['loss']
-        best_loss_error = trials.best_trial['result']['loss_variance']
+        best_loss_error = np.sqrt(trials.best_trial['result']['loss_variance'])
         show("\n- Best configuration:")
         for key, content in best_config.items():
             show(f"  ==] {key}: {content}")

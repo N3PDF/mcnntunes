@@ -4,13 +4,13 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+import numpy as np
 import os, yoda
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from .tools import make_dir, show
-import numpy as np
 from jinja2 import Environment, PackageLoader, select_autoescape
+from .tools import make_dir, show
 import mcnntunelib.stats as stats
 
 class Report(object):
@@ -321,9 +321,6 @@ class Report(object):
 
             # Discrete hyperparameters
             if key in ('actfunction','initializer','optimizer','data_augmentation'):
-
-                # Plot best trial
-                sns.catplot(x=key, y='loss', color='red', data=best_df, kind='point', ax=ax[current_ax])
 
                 # Plot all trials
                 sns.catplot(x=key, y='loss', kind='violin', cut=0.0, data=df, ax=ax[current_ax])

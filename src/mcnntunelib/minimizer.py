@@ -4,18 +4,18 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
-from abc import ABC, abstractmethod
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import numpy as np
-from cma.evolution_strategy import fmin
-import mcnntunelib.stats as stats
+from abc import ABC, abstractmethod
 import pickle, h5py
-from .tools import show, error, make_dir
+from cma.evolution_strategy import fmin
+import keras.backend as K
 from keras.models import Model
 from keras.layers.core import Dense
 from keras.layers import Input
-import keras.backend as K
+import mcnntunelib.stats as stats
+from .tools import show, error, make_dir
 
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""
@@ -101,7 +101,7 @@ class CMAES(Minimizer):
             error('Error: call to get_fmin_output without calling minimize')
 
 class GradientMinimizer(Minimizer):
-    """"""
+    """(experimental)"""
 
     def __init__(self, runs, truth, model, output = None, truth_index = 0):
         """Setting data attributes"""

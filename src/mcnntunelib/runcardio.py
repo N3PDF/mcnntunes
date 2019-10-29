@@ -5,8 +5,8 @@ Performs MC tunes using Neural Networks
 """
 
 import yaml, glob
-from .tools import show, error
 from hyperopt import hp
+from .tools import show, error
 
 class ConfigError(ValueError): pass
 
@@ -48,7 +48,7 @@ class Config(object):
                 param_estimator:(optional, only for 'InverseModel', 'SimpleInference', 'Median', 'Mean')
 
         minimizer: (only for 'DirectModel')
-            minimizer_type: 'CMAES' or 'GradientMinimizer'
+            minimizer_type: 'CMAES' or 'GradientMinimizer' (experimental)
             bounds: (only for CMAES)
             restarts: (only for CMAES)
 

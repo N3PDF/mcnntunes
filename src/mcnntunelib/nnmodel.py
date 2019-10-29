@@ -4,15 +4,14 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import pickle, h5py
-import numpy as np
-from .tools import show, error, make_dir
 from keras.models import Sequential, load_model
 from keras.layers.core import Dense
 from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
-import matplotlib.pyplot as plt
-
+from .tools import show, error, make_dir
 
 def build_model(input_dim=None, output_dim=1,
                 optimizer='rmsprop', loss='mse',
@@ -258,7 +257,7 @@ class InverseModel(Model):
         # Update READY flag
         self.READY = True
 
-    def predict(self, x, x_err, scaled_x = True, scaled_y = True, return_distribution = False, num_mc_step = 10000):
+    def predict(self, x, x_err, scaled_x = True, scaled_y = True, return_distribution = False, num_mc_steps = 10000):
         """Predicts the y passing the x. Notice that the notation is
         the opposite of the one in the Data class"""
 
@@ -271,8 +270,8 @@ class InverseModel(Model):
 
         # Compute error by resampling the expdata many times
         # and computing the standard deviation of the corresponding predictions
-        x_broadcasted = np.broadcast_to(x, shape=(num_mc_step, x.shape[1]))
-        x_err = np.broadcast_to(x_err, shape=(num_mc_step, x_err.shape[1]))
+        x_broadcasted = np.broadcast_to(x, shape=(num_mc_steps, x.shape[1]))
+        x_err = np.broadcast_to(x_err, shape=(num_mc_steps, x_err.shape[1]))
         noisy_x = x_broadcasted + x_err * np.random.normal(loc=0.0, scale=1.0, size=x_err.shape)
         
         prediction_distribution = self.model.predict(self.weight_mask(noisy_x))
@@ -411,7 +410,7 @@ def get_optimizer(setup):
     Return the optimizer specified in the "setup" dictionary.
     Optional keys:
         - setup["optimizer"]: optimizer in string format (default "adam")
-        - setup["optimizer_lr"]: the learning rate (float >= 0)
+        - setup["optimizer_lr"]: the learning rate (float > 0)
     """
 
     # Return the right optimizer

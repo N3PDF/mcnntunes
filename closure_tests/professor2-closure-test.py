@@ -15,6 +15,7 @@ def parseArgs(argv):
    parser.add_argument("-w", "--wfile", help="Weightfile", required=True, type=str)
    parser.add_argument("-o", "--output", help="Temporary output for the tunes", required=True, type=str)
    parser.add_argument("--results", help="Output for the benchmark results", required=True, type=str)
+   parser.add_argument("--tune_options", help="Additional options for prof2-tune", default='', type=str)
    return parser.parse_args(argv)
 
 def main(argv):
@@ -42,7 +43,7 @@ def main(argv):
                 true_params[k.strip()] = v.strip()
         
         # Tuning with Professor
-        os.system("prof2-tune -d "+args.data+foldername+" -r "+args.runs+" --wfile "+args.wfile+" -o "+args.output+" ipol.dat")
+        os.system("prof2-tune -d "+args.data+foldername+" -r "+args.runs+" --wfile "+args.wfile+" -o "+args.output+" "+args.tune_options+" ipol.dat")
 
         # Reading the tuned parameters
         with open(args.output+"/results.txt",'r') as param_f:
