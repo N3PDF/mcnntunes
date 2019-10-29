@@ -137,21 +137,17 @@ input:
 
 #############################
 model:
+  type: 'DirectModel'
   seed: 0
-  scan: off
-
-  scan_setup:
-    nb_epoch: [1000, 2000, 5000]
-    batch_size: [50, 100, 200]
-    loss: ['mse']
 
   noscan_setup:
     optimizer: 'rmsprop'
     loss: 'mse'
-    nb_epoch: 10000
+    epochs: 10000
     batch_size: 50
 
 ##############################
 minimizer:
+  type: 'CMAES'
   bounds: on
   restarts: 2

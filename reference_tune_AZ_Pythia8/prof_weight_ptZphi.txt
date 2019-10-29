@@ -4,8 +4,5 @@
 # measurement (electron channel), searching for an AZ-like
 # tune (arXiv:1406.3660).
 
-/ATLAS_2012_I1204784/d02-x01-y01@0:0.29 1
-/ATLAS_2012_I1204784/d02-x01-y01@0.29 0
-/ATLAS_2014_I1300647/d01-x01-y02@0:26 1
-/ATLAS_2014_I1300647/d01-x01-y02@26 0
-
+/ATLAS_2012_I1204784/d02-x01-y01#0:24 1.0   # 34 bins from 0 to 3.277
+/ATLAS_2014_I1300647/d01-x01-y02#0:11 1.0   # 26 bins from 0 to 800
