@@ -405,10 +405,10 @@ class App(object):
                 for j in range(cov.shape[1]):
                     cov[i,j] = corr[i,j]*best_std[i]*best_std[j]
             eig, vec = np.linalg.eig(cov)
-            replica = result[0] + (eig ** 0.5 * vec).T
+            replica = best_x + (eig ** 0.5 * vec).T
             show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
             for rep in replica:
-                show(runs.unscale_x(rep))
+                show(rep)
 
         info('\n [======= Building report =======]')
 
