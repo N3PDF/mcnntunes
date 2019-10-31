@@ -22,7 +22,7 @@ from .nnmodel import get_model
 from .minimizer import CMAES, GradientMinimizer
 from .report import Report
 from .tools import make_dir, show, info, success, error, __version__, __author__, log_check
-import mcnntunelib.stats as stats
+import mcnntune.stats as stats
 
 
 class App(object):

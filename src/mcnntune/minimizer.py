@@ -14,7 +14,7 @@ import keras.backend as K
 from keras.models import Model
 from keras.layers.core import Dense
 from keras.layers import Input
-import mcnntunelib.stats as stats
+import mcnntune.stats as stats
 from .tools import show, error, make_dir
 
 class Minimizer(ABC):

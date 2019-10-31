@@ -11,14 +11,14 @@ import seaborn as sns
 import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
 from .tools import make_dir, show
-import mcnntunelib.stats as stats
+import mcnntune.stats as stats
 
 class Report(object):
 
     def __init__(self, path):
         """"""
         self.env = Environment(
-            loader=PackageLoader('mcnntunelib', 'templates'),
+            loader=PackageLoader('mcnntune', 'templates'),
             autoescape=select_autoescape(['html'])
         )
 
