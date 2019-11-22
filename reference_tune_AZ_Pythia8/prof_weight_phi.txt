@@ -3,8 +3,5 @@
 # phi_eta^star measurements
 # with the same setup as arXiv:1406.3660.
 
-/ATLAS_2012_I1204784/d02-x01-y01@0:0.29 1
-/ATLAS_2012_I1204784/d02-x01-y01@0.29 0
-/ATLAS_2012_I1204784/d02-x01-y02@0:0.29 1
-/ATLAS_2012_I1204784/d02-x01-y02@0.29 0
-
+/ATLAS_2012_I1204784/d02-x01-y01#0:24       1.0   # 34 bins from 0 to 3.277
+/ATLAS_2012_I1204784/d02-x01-y02#0:24       1.0   # 34 bins from 0 to 3.277

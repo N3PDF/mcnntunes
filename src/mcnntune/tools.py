@@ -41,3 +41,11 @@ def error(message):
     log.error(message, exc_info=True)
     show('\n')
     raise Exception('\033[91m%s\033[0m' % message)
+
+# check if basicConfig has been called
+# if not, don't log anything
+# this is a low-quality workaround
+# for the hyperopt-mongo-workers
+def log_check():
+    if len(log.__dict__['parent'].__dict__['handlers']) == 2:
+        log.disabled = True

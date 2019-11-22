@@ -12,11 +12,11 @@ setup(name= "mcnntune",
       author_email = "stefano.carrazza@cern.ch",
       long_description = long_desc,
       entry_points = {'console_scripts':
-                    ['mcnntemplate = scripts.mcnntemplate:main',
-                     'mcnntune = scripts.mcnntune:main' ]},
+                    ['mcnntemplate = mcnntune.scripts.mcnntemplate:main',
+                     'mcnntune = mcnntune.scripts.mcnntune:main' ]},
       package_dir = {'': 'src'},
       packages = find_packages('src'),
-      package_data = {
+      package_data = {'':['*.html']
        },
       install_requires=[
       ],

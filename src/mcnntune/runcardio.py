@@ -5,6 +5,7 @@ Performs MC tunes using Neural Networks
 """
 
 import yaml, glob
+from hyperopt import hp
 from .tools import show, error
 
 class ConfigError(ValueError): pass
@@ -32,10 +33,41 @@ class Config(object):
      - a list of two real number [a,b]. This will select all bins centered into the close interval [a,b].
        It's also possible to use '+inf' or '-inf' instead a real numbers.
 
+        model:
+            model_type: 'DirectModel' or 'InverseModel'
+            seed:
+            noscan_setup:
+                architecture: (optional, default [5, 5])
+                actfunction: (optional, default 'tanh')
+                optimizer: (optional, default "adam")
+                optimizer_rl: (optional)
+                initializer: (optional, default "glorot_uniform")
+                epochs: (optional, default 5000)
+                batch_size: (optional, default 16)
+                data_augmentation: (optional, default False, only for 'InverseModel')
+                param_estimator:(optional, only for 'InverseModel', 'SimpleInference', 'Median', 'Mean')
+
+        minimizer: (only for 'DirectModel')
+            minimizer_type: 'CMAES' or 'GradientMinimizer' (experimental)
+            bounds: (only for CMAES)
+            restarts: (only for CMAES)
+
+        hyperparameter_scan:
+            max_evals:
+            cluster:
+                url:
+                exp_key:
+            model:
+                architecture:
+                actfunction:
+                optimizer:
+                epochs:
+                batch_size:     
+
     """
 
     def __init__(self, content):
-        """load lhe files"""
+        """load the files"""
         self.content = content
         self.patterns = self.get('input', 'patterns')
         self.unpatterns = self.get('input', 'unpatterns')
@@ -96,14 +128,48 @@ class Config(object):
             if len(self.weightrules) == 0: # check if the list was empty
                 self.use_weights = False
 
+        # Model subsection
+        self.model_type = self.get('model', 'type')
         self.seed = self.get('model', 'seed')
-        self.scan = self.get('model', 'scan')
-        if not self.scan:
-            self.noscan_setup = self.get('model', 'noscan_setup')
+        self.noscan_setup = self.get('model', 'noscan_setup')
+
+        # Minimizer subsection
+        if self.model_type == 'DirectModel':
+            self.minimizer_type = self.get('minimizer', 'type')
+            if self.minimizer_type == 'CMAES':
+                self.bounds = self.get('minimizer','bounds')
+                self.restarts = self.get('minimizer','restarts')
         else:
-            self.scan_setup = self.get('model', 'scan_setup')
-        self.bounds = self.get('minimizer','bounds')
-        self.restarts = self.get('minimizer','restarts')
+            self.minimizer_type = None
+
+        # Hyperparameters scan subsection
+        try:
+            self.max_evals = self.content['hyperparameter_scan']['max_evals']
+            self.model_scan_setup = self.content['hyperparameter_scan']['model']
+            self.list_model_scan_setup = [{'key': key, 'value': str(content)} for key, content in self.model_scan_setup.items()]
+            self.enable_hyperparameter_scan = True
+        except:
+            self.enable_hyperparameter_scan = False
+
+        # Parse scan settings, if present
+        if self.enable_hyperparameter_scan:
+            
+            try:
+                cluster_settings = self.content['hyperparameter_scan']['cluster']
+                self.enable_cluster = True
+            except:
+                self.enable_cluster = False
+
+            if self.enable_cluster:
+                try:
+                    self.cluster_url = cluster_settings['url']
+                    self.cluster_exp_key = cluster_settings['exp_key']
+                except:
+                    error("Error: can't find proper cluster settings")
+
+            for key, content in self.model_scan_setup.items():
+                if 'hp.' in str(content):
+                    self.model_scan_setup[key] = eval(content)
 
     def discover_yodas(self):
         try:

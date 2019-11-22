@@ -4,19 +4,21 @@ Performs MC tunes using Neural Networks
 @authors: Stefano Carrazza & Simone Alioli
 """
 
+import numpy as np
 import os, yoda
 import matplotlib.pyplot as plt
-from .tools import make_dir, show
-import numpy as np
+import seaborn as sns
+import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
-import mcnntunelib.stats as stats
+from .tools import make_dir, show
+import mcnntune.stats as stats
 
 class Report(object):
 
     def __init__(self, path):
         """"""
         self.env = Environment(
-            loader=PackageLoader('mcnntunelib', 'templates'),
+            loader=PackageLoader('mcnntune', 'templates'),
             autoescape=select_autoescape(['html'])
         )
 
@@ -26,7 +28,7 @@ class Report(object):
     def save(self, dictionary):
         """"""
         templates = ['index.html','data.html','model.html','benchmark.html',
-                     'minimization.html','raw.html','config.html']
+                     'minimization.html','raw.html','config.html','optimize.html']
 
         for item in templates:
             template = self.env.get_template(item)
@@ -36,12 +38,14 @@ class Report(object):
 
         show('\n- Generated report @ file://%s/%s/index.html' % (os.getcwd(), self.path))
 
-    def plot_minimize(self, minimizer, logger, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+    def plot_CMAES_logger(self, logger):
         """"""
         logger.es.plot()
-        plt.savefig('%s/plots/minimizer.svg' % self.path)
+        plt.savefig(f'{self.path}/plots/minimizer.svg')
         plt.close()
 
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+        """"""
         # plot 1d profiles
         N = 40 # points
         for dim in range(runs.x_scaled.shape[1]):
@@ -253,3 +257,171 @@ class Report(object):
             plt.legend()
             plt.savefig('%s/plots/benchmark_%s.svg' % (self.path, param_name))
             plt.close()
+
+    def plot_hyperscan_analysis(self, trials):
+        """"""
+
+        # List with available plots
+        # for the HMTL report
+        available_plots = []
+
+        # Extract some data from the trials object
+        data = {'iteration': [], 'loss': []}
+        # Scan tuned settings using the first trial
+        for conf in trials.trials[0]['configuration']:
+            data[conf['key']] = []
+            # Additional data if architecture was tuned
+            if conf['key'] == 'architecture':
+                architecture_info = {'nb_hidden_layers': [], 'average_units_per_layer': []}
+        # Load data, while search for the best trial
+        best_loss = 1000
+        best_id = -1
+        for trial in trials.trials:
+            # Filter bad scans
+            if trial['state'] != 2:
+                continue
+            # Load iteration number and loss
+            data['iteration'].append(trial['tid'])
+            data['loss'].append(trial['result']['loss'])
+            # Search for the best trial
+            if data['loss'][-1] < best_loss:
+                best_loss = data['loss'][-1]
+                best_id = data['iteration'][-1]
+            # Load all tuned hyperparameters
+            for conf in trial['configuration']:  
+                data[conf['key']].append(conf['value'])
+            # Try to load additional data if architecture was tuned
+            try:
+                architecture_info['nb_hidden_layers'].append(len(data['architecture'][-1]))
+                architecture_info['average_units_per_layer'].append(np.rint(np.mean(data['architecture'][-1])))
+            except Exception:
+                pass
+
+        # Create a pandas dataframe for the trials,
+        # and one for the best trial only
+        df = pd.DataFrame(data=data)
+        best_df = df[df['iteration'] == best_id]
+        show('\n - Hyperparameter scan summary:\n')
+        show(df)
+        show('\n - Best trial:\n')
+        show(best_df)
+
+        # Plot loss against hyperparameters summary
+        num_plots = len(data) - 2 # substract losses and iterations
+        try: # subtract the architecture
+            architecture_info
+            num_plots -= 1
+        except Exception:
+            pass
+        fig, ax = plt.subplots(1, num_plots, sharey=True, figsize=(3.2*num_plots, 5))
+        current_ax = 0
+        for key in data.keys():
+
+            plt.figure()
+
+            # Discrete hyperparameters
+            if key in ('actfunction','initializer','optimizer','data_augmentation'):
+
+                # Plot all trials
+                sns.catplot(x=key, y='loss', kind='violin', cut=0.0, data=df, ax=ax[current_ax])
+                sns.catplot(x=key, y='loss', kind='violin', cut=0.0, data=df)
+
+                # Adjust plot settings
+                if key == 'actfunction':
+                    ax[current_ax].set_xlabel('activation function')
+                    plt.xlabel('activation function')
+                elif key == 'data_augmentation':
+                    ax[current_ax].set_xlabel('data augmentation')
+                    plt.xlabel('data augmentation')
+
+            # Continuous hyperparameters
+            elif key in ('batch_size','epochs','optimizer_lr'):
+
+                # Plot all trials
+                sns.relplot(x=key, y='loss', data=df, ax=ax[current_ax])
+                sns.relplot(x=key, y='loss', hue='optimizer', data=df, style='optimizer')
+                if key == 'batch_size':
+                    ax[current_ax].set_xlabel('batch size')
+                    plt.xlabel('batch size')
+                elif key == 'optimizer_lr':
+                    ax[current_ax].set_xlabel('learning rate')
+                    ax[current_ax].set_xscale('log')
+                    ax[current_ax].set_xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
+                    plt.xlabel('learning rate')
+                    plt.xscale('log')
+                    plt.xlim(np.min(data['optimizer_lr']), np.max(data['optimizer_lr']))
+
+                # Plot best trial
+                sns.scatterplot(x=key, y='loss', color='red', data=best_df, ax=ax[current_ax], s=150)
+
+            else:
+                continue
+
+            current_ax += 1
+            plt.savefig(f'{self.path}/plots/hyper_scan_{key}.svg', bbox_inches='tight')
+            available_plots.append(f'plots/hyper_scan_{key}.svg')
+
+        # Save the figure
+        fig.savefig(f'{self.path}/plots/hyper_scan.svg', bbox_inches="tight")
+        plt.close()
+
+        # Plot pairs
+        plt.figure(figsize=(50, 50))
+        try:
+            slim_df = df.drop(['data_augmentation', 'iteration'], axis=1) # boolean type gives error
+        except Exception:
+            slim_df = df.drop('iteration', axis=1)
+        sns.pairplot(slim_df)
+        plt.savefig(f'{self.path}/plots/hyper_scan_pairplot.svg', bbox_inches='tight')
+        available_plots.append('plots/hyper_scan_pairplot.svg')
+        plt.close()
+
+        # Plot architecture comparison
+        try:
+            plt.figure()
+            archi_df = pd.DataFrame(data=architecture_info)
+            df = df.join(archi_df)
+            best_df = df[df['iteration'] == best_id]
+            sns.relplot(x='average_units_per_layer', y='loss', row='nb_hidden_layers', data=df)
+            sns.scatterplot(x='average_units_per_layer', y='loss', color='red', data=best_df, s=150)
+            plt.xlabel('average units per layer')
+            plt.savefig(f'{self.path}/plots/hyper_scan_architecture_best.svg', bbox_inches='tight')
+            available_plots.append('plots/hyper_scan_architecture_best.svg')
+            plt.close()
+            plt.figure()
+            sns.relplot(x='average_units_per_layer', y='loss', row='nb_hidden_layers', data=df, hue='optimizer', style='optimizer')
+            plt.xlabel('average units per layer')
+            plt.savefig(f'{self.path}/plots/hyper_scan_architecture.svg', bbox_inches='tight')
+            available_plots.append('plots/hyper_scan_architecture.svg')
+            plt.close()
+        except Exception:
+            pass
+
+        return available_plots
+
+    def plot_prediction_distribution(self, best_x, best_std, noisy_x, parameter_names):
+        """"""
+
+        # Create figure and axes
+        fig, axes = plt.subplots(1, best_x.shape[0], figsize=(16,5))
+
+        # Compute mean and median of the distribution
+        mean = np.mean(noisy_x, axis=1)
+        median = np.median(noisy_x, axis=1)
+
+        # Plot histos and vertical lines
+        for i in range(best_x.shape[0]):
+            axes[i].hist(noisy_x[i,:], bins='auto', fill=True, density=True)
+            axes[i].axvline(best_x[i], color='k', lw=2, label='Prediction')
+            axes[i].axvline(best_x[i]+best_std[i], color='k', lw=1, ls='--', label='1 $\sigma$')
+            axes[i].axvline(best_x[i]-best_std[i], color='k', lw=1, ls='--')
+            axes[i].axvline(mean[i], color='b', ls='--', label='Mean')
+            axes[i].axvline(median[i], color='r', ls='--', label='Median')
+            axes[i].legend()
+            axes[i].set_xlabel(parameter_names[i])
+            axes[i].set_ylabel('$p(x)$')
+        fig.suptitle('Distribution of predictions')
+        
+        # Save figure
+        fig.savefig(f'{self.path}/plots/prediction_spread.svg', bbox_inches='tight')
+        plt.close()

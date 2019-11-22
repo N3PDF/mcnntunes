@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block nav_optimize %}selected{% endblock %}
+{% block body %}
+<h1 class="page-title">Optimize mode results</h1>
+<div class="markdown-body">
+
+{% if optimize_results is defined %}
+
+    <h2>Best configuration:</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">Key</th>
+            <th scope="col">Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for settings in optimize_results.best_config %}
+        <tr>
+            <td>{{settings.key}}</td>
+            <td>{{settings.value}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        <thead>
+                <tr>
+                    <th scope="col">Estimator</th>
+                    <th scope="col">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Average relative difference</td>
+                    <td>{{optimize_results.best_results.average_relative_difference}} +- {{optimize_results.best_results.average_relative_difference_error}}</td>
+                </tr>
+                <tr>
+                    <td>Reduced chi2</td>
+                    <td>{{optimize_results.best_results.chi2}} +- {{optimize_results.best_results.chi2_error}}</td>
+                </tr>
+            </tbody>
+    </table>
+
+    <h2>Optimize mode settings</h2>
+
+    <table>
+            <thead>
+            <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Evaluations:</td>
+                <td>{{optimize_results.max_evals}}</td>
+            </tr>
+            {% for settings in optimize_results.search_space %}
+            <tr>
+                <td>{{settings.key}}</td>
+                <td>{{settings.value}}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+    </table>
+
+    <h2>Trials</h2>
+
+    {% for path in hyper_scan_plots %}
+    <figure>
+        <img src={{path}} alt="Hyperparameter scan plot">
+    </figure>
+    {% endfor %}
+
+    {% for trial in optimize_results.trials %}
+
+    <p><b>Trial {{loop.index}}:</b></p>
+
+    <table>
+            <thead>
+            <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Value</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for conf in trial.configuration %}
+            <tr>
+                <td>{{conf.key}}</td>
+                <td>{{conf.value}}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <thead>
+                <tr>
+                    <th scope="col">Estimator</th>
+                    <th scope="col">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Average relative difference</td>
+                    <td>{{trial.result.average_relative_difference}} +- {{trial.result.average_relative_difference_error}}</td>
+                </tr>
+                <tr>
+                    <td>Reduced chi2</td>
+                    <td>{{trial.result.chi2}} +- {{trial.result.chi2_error}}</td>    
+                </tr>
+            </tbody>
+    </table>
+
+    {% endfor %}
+
+{% else %}
+
+    <p>Optimize mode disabled.</p>
+
+{% endif %}
+
+</div>
+{% endblock %}
