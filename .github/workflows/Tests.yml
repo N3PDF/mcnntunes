@@ -18,9 +18,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install setuptools pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        wget https://yoda.hepforge.org/downloads/?f=YODA-1.8.3.tar.gz -O YODA-1.8.3.tar.gz
+        tar -xf YODA-1.8.3.tar.gz
+        cd YODA-1.8.3
+        ./configure && make
+        sudo make install
+        cd ..
     - name: Install package
       run: |
+        cd mcnntune
         python setup.py install
+        mcnntune --help
     - name: Test with pylint
       run: |
         pylint src -E

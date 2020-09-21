@@ -5,7 +5,7 @@ hyperopt
 jinja2
 keras==2.2.4
 matplotlib
-mongodb
 pandas
+pymongo
 seaborn
 tensorflow==1.12.0
