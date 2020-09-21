@@ -3,9 +3,9 @@
 cma
 hyperopt
 jinja2
-keras=2.2.4
+keras==2.2.4
 matplotlib
 mongodb
 pandas
 seaborn
-tensorflow=1.12.0
+tensorflow==1.12.0
