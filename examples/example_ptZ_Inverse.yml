@@ -1,0 +1,49 @@
+#############################
+
+# REFERENCE TUNE AZ PYTHIA8 (MCNNTUNE)
+# Runcard for performing the tune using the
+# ptZ measurements
+# following arXiv:1406.3660.
+
+#############################
+input:
+  folders:
+    - ../mcnntunes_data/theory_input_3params_mpipt0_2.18/training_set
+  patterns:
+    - '/ATLAS_2014_I1300647/d01-x01-y01'
+    - '/ATLAS_2014_I1300647/d01-x01-y02'    
+  unpatterns:
+    - 'None'
+  expfiles:
+    - '../mcnntunes_data/theory_input_3params_mpipt0_2.18/expdata/ATLAS_2014_I1300647.yoda'
+  benchmark_folders:
+    - ../mcnntunes_data/theory_input_3params_mpipt0_2.18/validation_set
+  weightrules:
+    - pattern: '/ATLAS_2014_I1300647/d01-x01-y01'
+      condition: [26,'+inf']
+      weight: 0
+    - pattern: '/ATLAS_2014_I1300647/d01-x01-y02'
+      condition: [26,'+inf']
+      weight: 0
+
+#############################
+model:
+  type: 'InverseModel'
+  seed: 0
+
+  noscan_setup:
+    optimizer: 'adam'
+    epochs: 5000
+    batch_size: 512
+    architecture: [3,5]
+    actfunction: 'tanh'
+
+##############################
+hyperparameter_scan:
+  max_evals: 2
+  model:
+    architecture: "hp.choice('layers', [[hp.quniform(f'size_2_{_}',2,20,1) for _ in range(2)],[hp.quniform(f'size3_{_}',2,20,1) for _ in range(3)],[hp.quniform(f'size4_{_}',2,20,1) for _ in range(4)],[hp.quniform(f'size5_{_}',2,20,1) for _ in range(5)]])"
+    actfunction: "hp.choice('model_actfunction', ['tanh','relu','sigmoid'])"
+    optimizer: "hp.choice('model_optimizer', ['sgd','rmsprop','adagrad','adadelta','adam','adamax','nadam'])"
+    epochs: "hp.choice('nb_epochs', [250, 500, 1000, 2500, 5000, 7500, 10000])"
+    batch_size: "hp.choice('model_batch_size', [100, 200, 300, 400, 500])"
