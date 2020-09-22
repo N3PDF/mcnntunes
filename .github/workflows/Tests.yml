@@ -3,7 +3,6 @@ name: Tests
 on: push
 jobs:
   build:
-    container: python:3.6
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
