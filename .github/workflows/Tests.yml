@@ -18,6 +18,7 @@ jobs:
         wget https://yoda.hepforge.org/downloads/?f=YODA-1.8.3.tar.gz -O YODA-1.8.3.tar.gz
         tar -xf YODA-1.8.3.tar.gz
         cd YODA-1.8.3
+        export PATH=$PATH:/usr/local/bin/
         ./configure
         make
         sudo make install
