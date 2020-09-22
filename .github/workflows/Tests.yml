@@ -9,6 +9,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install dependencies
       run: |
+        alias python=python3
         python -m pip install --upgrade pip
         pip install setuptools pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -21,11 +22,13 @@ jobs:
         sudo make install
     - name: Install package
       run: |
-        python setup.py install
+        alias python=python3
+        sudo python setup.py install
         echo $PYTHONPATH
         mcnntune --help
     - name: Test with pylint
       run: |
+        alias python=python3
         pylint src -E
     - name: Download dataset
       run: |
@@ -39,5 +42,6 @@ jobs:
         rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
     - name: Test with pytest
       run: |
+        alias python=python3
         echo $PYTHONPATH
         pytest examples
