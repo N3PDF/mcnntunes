@@ -3,29 +3,32 @@ name: Tests
 on: push
 jobs:
   build:
-    container: python:3.6.12
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: [3.6]
     steps:
     - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        which python
         python -m pip install --upgrade pip
         pip install setuptools pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         cd ..
-        wget https://yoda.hepforge.org/downloads/?f=YODA-1.8.3.tar.gz -O YODA-1.8.3.tar.gz
-        tar -xf YODA-1.8.3.tar.gz
-        cd YODA-1.8.3
-        export PATH=$PATH:/usr/local/bin/
+        wget https://yoda.hepforge.org/downloads/?f=YODA-1.7.4.tar.gz -O YODA-1.7.4.tar.gz
+        tar -xf YODA-1.7.4.tar.gz
+        cd YODA-1.7.4
         ./configure
         make
         sudo make install
     - name: Install package
       run: |
         python setup.py install
-        echo $PYTHONPATH
         mcnntune --help
     - name: Test with pylint
       run: |
@@ -42,5 +45,4 @@ jobs:
         rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
     - name: Test with pytest
       run: |
-        echo $PYTHONPATH
         pytest examples
