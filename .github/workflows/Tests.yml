@@ -23,7 +23,7 @@ jobs:
         wget https://yoda.hepforge.org/downloads/?f=YODA-1.7.4.tar.gz -O YODA-1.7.4.tar.gz
         tar -xf YODA-1.7.4.tar.gz
         cd YODA-1.7.4
-        ./configure
+        ./configure --prefix=/opt/hostedtoolcache/Python/3.6.12/x64/
         make
         sudo make install
     - name: Install package
