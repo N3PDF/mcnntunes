@@ -27,11 +27,11 @@ jobs:
         ./configure --prefix=/home/runner/work/mcnntune/YODA
         make
         make install
-        echo "::set-env name=PYTHONPATH::home/runner/work/mcnntune/YODA"
+        echo "::set-env name=PYTHONPATH::/home/runner/work/mcnntune/YODA"
     - name: Install package
       run: |
-        ls
         python setup.py install
+        export PYTHONPATH=$PYTHONPATH:/home/runner/work/mcnntune/YODA
         echo $PYTHONPATH
         mcnntune --help
     - name: Test with pylint
@@ -49,4 +49,6 @@ jobs:
         rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
     - name: Test with pytest
       run: |
+        export PYTHONPATH=$PYTHONPATH:/home/runner/work/mcnntune/YODA
+        echo $PYTHONPATH
         pytest examples
