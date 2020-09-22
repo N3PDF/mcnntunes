@@ -20,11 +20,14 @@ jobs:
         pip install setuptools pylint pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         cd ..
+        mkdir YODA
         wget https://yoda.hepforge.org/downloads/?f=YODA-1.8.3.tar.gz -O YODA-1.8.3.tar.gz
         tar -xf YODA-1.8.3.tar.gz
         cd YODA-1.8.3
-        ./configure && make
-        sudo make install
+        ./configure --prefix=/home/runner/work/mcnntune/YODA
+        make
+        make install
+        echo "::set-env name=PYTHONPATH::$PYTHONPATH:home/runner/work/mcnntune/YODA"
     - name: Install package
       run: |
         ls
