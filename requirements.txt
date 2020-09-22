@@ -1,6 +1,6 @@
 # Requirements for MCNNTUNES
 
-cma
+cma==2.7.0
 hyperopt
 jinja2
 keras==2.2.4
