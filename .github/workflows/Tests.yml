@@ -32,6 +32,9 @@ jobs:
       run: |
         ls
         python setup.py install
+        export PYTHONPATH=$PYTHONPATH:home/runner/work/mcnntune/YODA
+        echo $PYTHONPATH
+        ls $PYTHONPATH
         mcnntune --help
     - name: Test with pylint
       run: |
