@@ -285,7 +285,7 @@ class InverseModel(Model):
         elif self.fixed_setup["param_estimator"] == 'Mean':
             prediction = np.mean(prediction_distribution, axis=0).reshape(-1)
         else:
-            error(f'Estimator label "{estimator}" not recognised.')
+            error(f'Estimator label "{self.fixed_setup["param_estimator"]}" not recognised.')
 
         if not scaled_y:
             prediction = self.runs.unscale_x(prediction)
