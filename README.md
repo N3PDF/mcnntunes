@@ -1,5 +1,7 @@
 # MC Neural Network Tunes
 
+![Tests](https://github.com/scarrazza/mcnntune/workflows/Tests/badge.svg)
+
 ## Installation
 
 ```Shell

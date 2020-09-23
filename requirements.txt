@@ -1,0 +1,11 @@
+# Requirements for MCNNTUNES
+
+cma==2.7.0
+hyperopt
+jinja2
+keras==2.2.4
+matplotlib
+pandas
+pymongo
+seaborn
+tensorflow==1.12.0
