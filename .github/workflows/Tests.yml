@@ -1,6 +1,8 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 name: Tests
 on: push
+env:
+  yoda-filename: YODA-1.7.4
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,12 +19,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools pylint pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install setuptools pylint pytest-cov
+        pip install -r requirements.txt
         cd ..
-        wget https://yoda.hepforge.org/downloads/?f=YODA-1.7.4.tar.gz -O YODA-1.7.4.tar.gz
-        tar -xf YODA-1.7.4.tar.gz
-        cd YODA-1.7.4
+        wget https://yoda.hepforge.org/downloads/?f=${{ env.yoda-filename }}.tar.gz -O ${{ env.yoda-filename }}.tar.gz
+        tar -xf ${{ env.yoda-filename }}.tar.gz
+        cd ${{ env.yoda-filename }}
         ./configure --prefix=${HOME}/yoda
         make -j2
         make install
@@ -32,8 +34,7 @@ jobs:
         echo "::set-env name=PYTHONPATH::${HOME}/yoda/lib/python${{ matrix.python-version }}/site-packages"
     - name: Install package
       run: |
-        python setup.py install
-        mcnntune --help
+        pip install .
     - name: Download dataset
       run: |
         cd ..
@@ -47,7 +48,7 @@ jobs:
         rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
     - name: Test with pytest
       run: |
-        pytest examples
+        pytest --cov-report=xml examples
     - name: Test with pylint
       run: |
         pylint src -E -d E1123,E1120,E0401,E1101
