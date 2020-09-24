@@ -9,7 +9,8 @@
 #############################
 input:
   folders:
-    - ../../mcnntunes_data/theory_input_3params_mpipt0_2.18/runs
+    - ../../mcnntunes_data/theory_input_3params_mpipt0_2.18/training_set
+    - ../../mcnntunes_data/theory_input_3params_mpipt0_2.18/validation_set
   patterns:
     - '/ATLAS_2012_I1204784/d02-x01-y01'
     - '/ATLAS_2014_I1300647/d01-x01-y02'    

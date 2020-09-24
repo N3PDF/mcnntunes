@@ -5,6 +5,10 @@ from setuptools import setup, find_packages
 with open('README.md') as f:
     long_desc = f.read()
 
+# Read requirements.txt
+requirements = open('requirements.txt').readlines()
+requirements = [r.strip() for r in requirements]
+
 setup(name= "mcnntune",
       version = '0.1',
       description = "MC Neural Network Tunes",
@@ -18,8 +22,7 @@ setup(name= "mcnntune",
       packages = find_packages('src'),
       package_data = {'':['*.html']
        },
-      install_requires=[
-      ],
+      install_requires=requirements,
       zip_safe = False,
       classifiers=[
             'Operating System :: Unix',

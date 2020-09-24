@@ -14,8 +14,9 @@ import time, pickle, argparse, shutil, filecmp, logging, copy, yaml
 from hyperopt import fmin as fminHyperOpt
 from hyperopt import hp, tpe, Trials, STATUS_OK, space_eval
 from hyperopt.mongoexp import MongoTrials
-import keras.backend as K
-from keras.models import Sequential
+import tensorflow as tf
+import tensorflow.keras.backend as K
+from tensorflow.keras.models import Sequential
 from .runcardio import Config
 from .yodaio import Data
 from .nnmodel import get_model
@@ -33,6 +34,10 @@ class App(object):
 
     def __init__(self):
         """reads the runcard and parse cmd arguments"""
+
+        # Disable eager mode
+        tf.compat.v1.disable_eager_execution()
+
         self.args = self.argparser().parse_args()
         make_dir(self.args.output)
         make_dir('%s/logs' % self.args.output)

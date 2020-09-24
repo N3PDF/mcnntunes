@@ -8,9 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import pickle, h5py
-from keras.models import Sequential, load_model
-from keras.layers.core import Dense
-from keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 from .tools import show, error, make_dir
 
 def build_model(input_dim=None, output_dim=1,
@@ -97,7 +97,6 @@ class DirectModel(Model):
         for bin in range(1, self.runs.y.shape[1]+1):
             nn = PerBinModel()
             nn.model, nn.fixed_setup, nn.loss = load(f'{input_path}/model_bin_{bin}/model.h5')
-            nn.model.name = f'bin_predictor_{bin}'
             self.per_bin_nns.append(nn)
 
         # Update READY flag
