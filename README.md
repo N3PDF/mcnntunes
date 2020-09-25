@@ -23,16 +23,19 @@ mcnntemplate myruncard_template.cmd myvariations.yml -o output
 
 Perform a MC tunes with Neural Networks.
 
+```Shell
 positional arguments:
-  {preprocess,model,minimize}
+  {preprocess,model,benchmark,tune,optimize}
                         sub-command help
     preprocess          preprocess input/output data
-    model               fit NN model to bin
-    minimize            minimize and provide final tune
+    model               fit NN model
+    benchmark           check the goodness of the tuning procedure
+    tune                provide final tune
+    optimize            tune hyperparameters using the HyperOpt library
   runcard               the runcard file.
 
 optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT, --output OUTPUT
                         the output folder
-  -p, --parallel        use multicore during grid search cv
+```
