@@ -47,13 +47,13 @@ class Data(object):
                 h = obj.get(key)
             except:
                 error('Cannot open histogram %s' % key)
-            output_size += len(h.points)
+            output_size += len(h.points())
             if not expData:
-                param = [item for item in h.annotations if self.annotation_tag in item]
+                param = [item for item in h.annotations() if self.annotation_tag in item]
                 for p in param:
                     if p not in input_param:
                         input_param.append(p)
-            show('  ==] Loaded %s from %d runs (dof=%d)' % (key, entries, len(h.points)))
+            show('  ==] Loaded %s from %d runs (dof=%d)' % (key, entries, len(h.points())))
 
         if not expData:
             input_size = len(input_param)
@@ -78,25 +78,25 @@ class Data(object):
                 if not expData:
                     for j, inparam in enumerate(input_param):
                         self.x[i, j] = h.annotation(inparam)
-                data_x = np.zeros(len(h.points))
-                data_xerrm = np.zeros(len(h.points))
-                data_xerrp = np.zeros(len(h.points))
-                data_y = np.zeros(len(h.points))
-                data_yerr = np.zeros(len(h.points))
-                data_weight = np.zeros(len(h.points))
-                for t, p in enumerate(h.points):
-                    self.y[i,index] = p.y
-                    self.yerr[i,index] = p.yErrAvg
+                data_x = np.zeros(len(h.points()))
+                data_xerrm = np.zeros(len(h.points()))
+                data_xerrp = np.zeros(len(h.points()))
+                data_y = np.zeros(len(h.points()))
+                data_yerr = np.zeros(len(h.points()))
+                data_weight = np.zeros(len(h.points()))
+                for t, p in enumerate(h.points()):
+                    self.y[i,index] = p.y()
+                    self.yerr[i,index] = p.yErrAvg()
                     if i==0: # Need just one run
-                        self.y_weight[index] = self.get_weight(key,weightrules,t+1,p.x, verbose=True)
+                        self.y_weight[index] = self.get_weight(key,weightrules,t+1,p.x(), verbose=True)
                     index += 1
-                    data_x[t] = p.x
-                    data_xerrm[t] = p.xErrs[0]
-                    data_xerrp[t] = p.xErrs[1]
-                    data_y[t] = p.y
-                    data_yerr[t] = p.yErrAvg
-                    data_weight[t] = self.get_weight(key,weightrules,t+1,p.x)
-                    if p.y == 0:
+                    data_x[t] = p.x()
+                    data_xerrm[t] = p.xErrs()[0]
+                    data_xerrp[t] = p.xErrs()[1]
+                    data_y[t] = p.y()
+                    data_yerr[t] = p.yErrAvg()
+                    data_weight[t] = self.get_weight(key,weightrules,t+1,p.x())
+                    if p.y() == 0:
                         info('Histogram %s has empty entries' % key)
                 self.plotinfo.append({'title': key.replace('/REF',''),
                                       'x': data_x,

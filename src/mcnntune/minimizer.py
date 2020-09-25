@@ -10,10 +10,10 @@ matplotlib.use('Agg')
 from abc import ABC, abstractmethod
 import pickle, h5py
 from cma.evolution_strategy import fmin
-import keras.backend as K
-from keras.models import Model
-from keras.layers.core import Dense
-from keras.layers import Input
+import tensorflow as tf
+import tensorflow.keras.backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, Input
 import mcnntune.stats as stats
 from .tools import show, error, make_dir
 
@@ -81,7 +81,7 @@ class CMAES(Minimizer):
     def minimize(self):
         """Minimize the chi2 and return the results"""
         self.result = fmin(self.chi2,
-                   str([self.center] * self.runs.x_scaled.shape[1]),
+                   [self.center] * self.runs.x_scaled.shape[1],
                    self.sigma,
                    self.opts,
                    restarts=self.restarts,
@@ -137,4 +137,4 @@ class GradientMinimizer(Minimizer):
 
     def chi2_Keras_loss(self, y_true, y_pred):
         """Custom chi2 loss function ready to be plugged in in Keras"""
-        return stats.chi2(y_true, y_pred, self.truth_error2 / (self.runs.y_std ** 2), weights=self.runs.y_weight)
+        return stats.chi2_tf(y_true, y_pred, self.truth_error2 / (self.runs.y_std ** 2), weights=self.runs.y_weight)

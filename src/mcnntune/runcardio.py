@@ -232,6 +232,6 @@ class Config(object):
     def from_yaml(cls, stream):
         """read yaml from stream"""
         try:
-            return cls(yaml.load(stream))
+            return cls(yaml.load(stream, Loader=yaml.SafeLoader))
         except yaml.error.MarkedYAMLError as e:
             error('Failed to parse yaml file: %s' % e)

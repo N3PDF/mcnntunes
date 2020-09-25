@@ -1,0 +1,54 @@
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+name: Tests
+on: push
+env:
+  yoda-filename: YODA-1.8.3
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools pylint pytest-cov
+        pip install -r requirements.txt
+        cd ..
+        wget https://yoda.hepforge.org/downloads/?f=${{ env.yoda-filename }}.tar.gz -O ${{ env.yoda-filename }}.tar.gz
+        tar -xf ${{ env.yoda-filename }}.tar.gz
+        cd ${{ env.yoda-filename }}
+        ./configure --prefix=${HOME}/yoda
+        make -j2
+        make install
+        echo "::add-path::${HOME}/yoda/bin"
+        echo "::set-env name=LD_LIBRARY_PATH::${HOME}/yoda/lib"
+        echo "::set-env name=PKG_CONFIG_PATH::${HOME}/yoda/lib/pkgconfig"
+        echo "::set-env name=PYTHONPATH::${HOME}/yoda/lib/python${{ matrix.python-version }}/site-packages"
+    - name: Install package
+      run: |
+        pip install .
+    - name: Download dataset
+      run: |
+        cd ..
+        GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/N3PDF/mcnntunes_data.git
+        cd mcnntunes_data
+        git lfs pull -I  theory_input_3params_mpipt0_2.18/expdata/ATLAS_2014_I1300647.yoda
+        git lfs pull -I  theory_input_3params_mpipt0_2.18/training_set/
+        git lfs pull -I  theory_input_3params_mpipt0_2.18/validation_set/
+        rm theory_input_3params_mpipt0_2.18/validation_set/run022{4,5,6,7,8,9}_merged_3params.yoda
+        rm theory_input_3params_mpipt0_2.18/validation_set/run023*_merged_3params.yoda
+        rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
+    - name: Test with pytest
+      run: |
+        pytest --cov-report=xml examples
+    - name: Test with pylint
+      run: |
+        pylint src -E -d E1123,E1120,E0401,E1101
