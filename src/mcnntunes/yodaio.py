@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-
 import yoda, pickle
 import numpy as np
-from .tools import error, show, info
+from mcnntunes.tools import error, show, info
 
 
 class Data(object):

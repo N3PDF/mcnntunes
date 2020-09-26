@@ -2,11 +2,7 @@
 """
 Generates custom runcards for tunes variations
 """
-
-import mcnntune.app as vp
-
-__author__ = "Stefano Carrazza & Simone Alioli"
-__version__= "1.0.0"
+import mcnntunes.app as vp
 
 
 def main():

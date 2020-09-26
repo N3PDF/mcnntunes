@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-
 import yaml, glob
 from hyperopt import hp
-from .tools import show, error
+from mcnntunes.tools import show, error
+
 
 class ConfigError(ValueError): pass
 
@@ -27,7 +26,7 @@ class Config(object):
                   condition: see below
                   weight: the weight
                 - ...
-    
+
     The condition subkey accept only:
      - one positive integer representing the index of the bin that we want to weight differently (the first bin is 1, not 0)
      - a list of two real number [a,b]. This will select all bins centered into the close interval [a,b].
@@ -62,7 +61,7 @@ class Config(object):
                 actfunction:
                 optimizer:
                 epochs:
-                batch_size:     
+                batch_size:
 
     """
 
@@ -98,7 +97,7 @@ class Config(object):
                     weight = rule['weight']
                     if weight < 0:
                         error('Error: negative weight found.')
-                    
+
                     # Analyze the condition
                     condition = rule['condition']
                     if isinstance(condition, int):
@@ -113,7 +112,7 @@ class Config(object):
                                     error("Error: unrecognised endpoint (use only numbers, '-inf' or '+inf')")
                     else:
                         error('Error: unrecognised condition format.')
-                    
+
                     # Build the right condition format
                     if condition_type == 'bin_index':
                         ruledict = {'pattern': pattern, 'condition_type': condition_type,
@@ -153,7 +152,7 @@ class Config(object):
 
         # Parse scan settings, if present
         if self.enable_hyperparameter_scan:
-            
+
             try:
                 cluster_settings = self.content['hyperparameter_scan']['cluster']
                 self.enable_cluster = True
@@ -199,7 +198,7 @@ class Config(object):
             self.benchmark_yodafiles.sort()
             show('\n- Detected %d files with benchmark MC runs from:' % len(self.benchmark_yodafiles))
             for folder in benchmark_folders:
-                show('  ==] %s' % folder)            
+                show('  ==] %s' % folder)
 
     def get(self, node, key):
         """"""

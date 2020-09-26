@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
 
 # ISSUE: Error estimation with GradientMinimizer
@@ -17,13 +16,14 @@ from hyperopt.mongoexp import MongoTrials
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Sequential
-from .runcardio import Config
-from .yodaio import Data
-from .nnmodel import get_model
-from .minimizer import CMAES, GradientMinimizer
-from .report import Report
-from .tools import make_dir, show, info, success, error, __version__, __author__, log_check
-import mcnntune.stats as stats
+from mcnntunes.runcardio import Config
+from mcnntunes.yodaio import Data
+from mcnntunes.nnmodel import get_model
+from mcnntunes.minimizer import CMAES, GradientMinimizer
+from mcnntunes.report import Report
+from mcnntunes.tools import make_dir, show, info, success, error, __author__, log_check
+import mcnntunes.stats as stats
+import mcnntunes
 
 
 class App(object):
@@ -259,7 +259,7 @@ class App(object):
 
             if verbose:
                 info(f'\n [======= Tuning benchmark run {index+1}/{benchmark_data.y.shape[0]}  =======]')
-            
+
             if write_on_disk:
                 current_output_path = f'{output_path}/benchmark/closure_test_{index+1}'
                 make_dir(current_output_path)
@@ -276,7 +276,7 @@ class App(object):
                             useBounds=self.config.bounds, restarts=self.config.restarts)
                 else:
 
-                    # Clear previous GradientMinimizer instances while preserving the model 
+                    # Clear previous GradientMinimizer instances while preserving the model
                     model_configs = [per_bin_nn.model.get_config() for per_bin_nn in nn.per_bin_nns]
                     model_weights = [per_bin_nn.model.get_weights() for per_bin_nn in nn.per_bin_nns]
                     K.clear_session()
@@ -325,7 +325,7 @@ class App(object):
         benchmark_results['chi2'] = np.mean(benchmark_chi2)
         benchmark_results['chi2_error'] = np.sqrt(np.var(benchmark_chi2)/benchmark_chi2.shape[0])
         benchmark_results['average_relative_difference'] = np.mean(benchmark_mean_relative_difference)
-        benchmark_results['average_relative_difference_error'] = np.sqrt(np.var(benchmark_mean_relative_difference) 
+        benchmark_results['average_relative_difference_error'] = np.sqrt(np.var(benchmark_mean_relative_difference)
                                                                         / benchmark_mean_relative_difference.shape[0])
         if output_path == self.args.output:
             pickle.dump(benchmark_results, open('%s/data/benchmark.p' % self.args.output, 'wb'))
@@ -382,7 +382,7 @@ class App(object):
                                             num_mc_steps = 100000)
 
         info('\n [======= Result Summary =======]')
-        
+
         # print best parameters
         if self.config.model_type == 'DirectModel':
             if self.config.use_weights:
@@ -419,14 +419,14 @@ class App(object):
 
         # Start building the report
         rep = Report(self.args.output)
-        display_output = {'results': [], 'version': __version__, 'dof': len(expdata.y[0]),
+        display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0]),
                             'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
 
         # Add best parameters
         for i, p in enumerate(runs.params):
             display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
                                                 'std': str('%e') % best_std[i]})
-        
+
         # Retrieve MC runs data
         display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
 
@@ -460,7 +460,7 @@ class App(object):
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
             display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
-        
+
         else:
             # Plot distribution of prediction if using InverseModel
             rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
@@ -497,7 +497,7 @@ class App(object):
 
     def optimize(self):
         """Tune model hyperparameters with the HyperOpt library"""
-        
+
         info('\n [======= Optimize mode =======]')
 
         if not self.config.enable_hyperparameter_scan:
@@ -559,7 +559,7 @@ class App(object):
             yaml.dump(original_runcard_dict, f, default_flow_style = False)
 
         success('\n [======= Optimize Completed =======]\n')
-    
+
     def objective(self, configuration_dictionary):
         """The objective function for the hyperparameter scan"""
 
@@ -623,8 +623,7 @@ class App(object):
         show(' |_|  |_|\\____|_| \\_|_| \\_| |_| \\__,_|_| |_|\\___|')
         show('')
 
-        show('  __version__: %s' % __version__)
-        show('  __authors__: %s' % __author__)
+        show('  __version__: %s' % mcnntunes.__version__)
 
 
 def main():

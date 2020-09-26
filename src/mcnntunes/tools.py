@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-__author__ = "Stefano Carrazza & Simone Alioli"
-__version__= "1.0.0"
-
 import logging
 log = logging.getLogger(__name__)
 

@@ -2,9 +2,6 @@
 """
 Generates custom runcards for tunes variations
 """
-__author__ = "Stefano Carrazza & Simone Alioli"
-__version__= "1.0.0"
-
 import os
 import argparse
 import yaml

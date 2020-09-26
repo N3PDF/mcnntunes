@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -11,7 +9,8 @@ import pickle, h5py
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
-from .tools import show, error, make_dir
+from mcnntunes.tools import show, error, make_dir
+
 
 def build_model(input_dim=None, output_dim=1,
                 optimizer='rmsprop', loss='mse',
@@ -28,6 +27,7 @@ def build_model(input_dim=None, output_dim=1,
 
     model.compile(loss=loss, optimizer=optimizer)
     return model
+
 
 class Model(ABC):
     """Abstract class for a generic model"""
@@ -54,6 +54,7 @@ class Model(ABC):
     def predict(self, x, scaled_x = True, scaled_y = True):
         pass
 
+
 class DirectModel(Model):
     """This model predicts the MC run output giving the input parameters."""
 
@@ -61,10 +62,10 @@ class DirectModel(Model):
         """Set data attributes"""
         Model.__init__(self, runs, seed = 0)
         self.model_type = 'DirectModel'
-    
+
     def build_and_train_model(self, setup):
         """Build and train n_bins FullyConnected models"""
-        
+
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
             nn = PerBinModel(self.seed)
@@ -79,14 +80,14 @@ class DirectModel(Model):
         """Save model, losses and plots in the output path"""
         if not self.READY:
             error('Error: nothing to save, call build_and_train_model or search_and_load_model first.')
- 
+
         make_dir(f'{output_path}')
 
         for bin in range(1, self.runs.y.shape[1]+1):
             make_dir(f'{output_path}/model_bin_{bin}')
             save(self.per_bin_nns[bin-1].model, self.per_bin_nns[bin-1].fixed_setup, self.per_bin_nns[bin-1].loss,
                                                                                 f'{output_path}/model_bin_{bin}/model.h5')
-            self.per_bin_nns[bin-1].plot(f'{output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])        
+            self.per_bin_nns[bin-1].plot(f'{output_path}/model_bin_{bin}', self.runs.x_scaled, self.runs.y_scaled[:,bin-1])
 
     def search_and_load_model(self, input_path):
         """Search for models in the input path (and load them)."""
@@ -117,6 +118,7 @@ class DirectModel(Model):
             prediction = self.runs.unscale_y(prediction)
 
         return prediction
+
 
 class PerBinModel(object):
 
@@ -168,6 +170,7 @@ class PerBinModel(object):
             plt.close()
 
         plot_losses(path, self.loss)
+
 
 class InverseModel(Model):
     """ This model predicts the input parameters giving the MC run output"""
@@ -230,7 +233,7 @@ class InverseModel(Model):
     def weight_mask(self, x):
         """Removes the zero-weighted inputs from the dataset matrix.
         Use the convention rows=samples, cols=bins"""
-        
+
         boolean_weight_mask = (self.runs.y_weight != 0)
 
         return x[:,boolean_weight_mask]
@@ -239,7 +242,7 @@ class InverseModel(Model):
         """Save model, losses and plots in the output path"""
         if not self.READY:
             error('Error: nothing to save, call build_and_train_model or search_and_load_model first.')
-        
+
         make_dir(f'{output_path}')
 
         # Save the losses and the model
@@ -272,7 +275,7 @@ class InverseModel(Model):
         x_broadcasted = np.broadcast_to(x, shape=(num_mc_steps, x.shape[1]))
         x_err = np.broadcast_to(x_err, shape=(num_mc_steps, x_err.shape[1]))
         noisy_x = x_broadcasted + x_err * np.random.normal(loc=0.0, scale=1.0, size=x_err.shape)
-        
+
         prediction_distribution = self.model.predict(self.weight_mask(noisy_x))
         best_std = np.std(prediction_distribution, axis=0).reshape(-1)
 
@@ -297,6 +300,7 @@ class InverseModel(Model):
         else:
             return prediction, best_std, prediction_distribution
 
+
 def get_model(model_type, runs, seed = 0):
     """Return a Model object, discriminating between different model type"""
     if model_type == 'DirectModel':
@@ -305,6 +309,7 @@ def get_model(model_type, runs, seed = 0):
         return InverseModel(runs, seed)
     else:
         error('Error: invalid model type.')
+
 
 def save(model, setup, loss, file):
         """save model to file"""
@@ -316,6 +321,7 @@ def save(model, setup, loss, file):
         pickle.dump([setup, loss], open(f'{file}.p', 'wb'))
         show(f'\n- Model saved in {file}')
 
+
 def load(file):
         """load model from file"""
         model = load_model(file)
@@ -323,6 +329,7 @@ def load(file):
         show(f'\n- Model loaded from {file}')
 
         return model, setup, loss
+
 
 def plot_losses(path, training_loss, validation_loss = None):
     """"""
@@ -339,6 +346,7 @@ def plot_losses(path, training_loss, validation_loss = None):
     plt.legend()
     plt.savefig(f'{path}/loss.svg')
     plt.close()
+
 
 def fix_setup_dictionary(setup):
     """
@@ -404,6 +412,7 @@ def fix_setup_dictionary(setup):
 
     return fixed_setup
 
+
 def get_optimizer(setup):
     """
     Return the optimizer specified in the "setup" dictionary.
@@ -443,5 +452,5 @@ def get_optimizer(setup):
             optimizer = Adamax(lr=setup['optimizer_lr'])
         elif setup["optimizer"] == "nadam":
             optimizer = Nadam(lr=setup['optimizer_lr'])
-    
+
     return optimizer

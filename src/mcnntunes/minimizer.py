@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -15,7 +13,8 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input
 import mcnntune.stats as stats
-from .tools import show, error, make_dir
+from mcnntunes.tools import show, error, make_dir
+
 
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""

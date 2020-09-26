@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 Performs MC tunes using Neural Networks
-@authors: Stefano Carrazza & Simone Alioli
 """
-
 import numpy as np
 import os, yoda
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
-from .tools import make_dir, show
+from mcnntunes.tools import make_dir, show
 import mcnntune.stats as stats
+
 
 class Report(object):
 
@@ -199,7 +198,7 @@ class Report(object):
 
             # calculate chi2
             for j, element in enumerate(display):
-                if element['name'] == hist['title']: 
+                if element['name'] == hist['title']:
                     display[j]['model'] = stats.chi2(predictions[ifirst:ifirst+size], hist['y'],
                                                     np.square(hist['yerr'])+np.square(reperr))
                 elif element['name'] == hist['title']+" (weighted)":
@@ -239,10 +238,10 @@ class Report(object):
                 true_parameter[index2] = benchmark_results['single_closure_test_results'][index2]['details'][index1]['true_params']
                 relative_error[index2] = abs((benchmark_results['single_closure_test_results'][index2]['details'][index1]['predicted_params']-
                                          true_parameter[index2]) / true_parameter[index2]) * 100
-            
+
             # Calculate mean value and std dev of the mean
             mean_error = np.mean(relative_error)
-            mean_error_error = np.sqrt(np.var(relative_error)/relative_error.shape[0]) 
+            mean_error_error = np.sqrt(np.var(relative_error)/relative_error.shape[0])
 
             # Plot
             plt.figure()
@@ -288,7 +287,7 @@ class Report(object):
                 best_loss = data['loss'][-1]
                 best_id = data['iteration'][-1]
             # Load all tuned hyperparameters
-            for conf in trial['configuration']:  
+            for conf in trial['configuration']:
                 data[conf['key']].append(conf['value'])
             # Try to load additional data if architecture was tuned
             try:
@@ -421,7 +420,7 @@ class Report(object):
             axes[i].set_xlabel(parameter_names[i])
             axes[i].set_ylabel('$p(x)$')
         fig.suptitle('Distribution of predictions')
-        
+
         # Save figure
         fig.savefig(f'{self.path}/plots/prediction_spread.svg', bbox_inches='tight')
         plt.close()
