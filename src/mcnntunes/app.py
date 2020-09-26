@@ -21,7 +21,7 @@ from mcnntunes.yodaio import Data
 from mcnntunes.nnmodel import get_model
 from mcnntunes.minimizer import CMAES, GradientMinimizer
 from mcnntunes.report import Report
-from mcnntunes.tools import make_dir, show, info, success, error, __author__, log_check
+from mcnntunes.tools import make_dir, show, info, success, error, log_check
 import mcnntunes.stats as stats
 import mcnntunes
 
