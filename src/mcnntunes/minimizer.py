@@ -12,7 +12,7 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input
-import mcnntune.stats as stats
+import mcnntunes.stats as stats
 from mcnntunes.tools import show, error, make_dir
 
 
