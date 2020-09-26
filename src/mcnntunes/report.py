@@ -9,7 +9,7 @@ import seaborn as sns
 import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
 from mcnntunes.tools import make_dir, show
-import mcnntune.stats as stats
+import mcnntunes.stats as stats
 
 
 class Report(object):
