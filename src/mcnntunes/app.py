@@ -377,7 +377,7 @@ class App(object):
             # For the InverseModel it's only an inference
             y = expdata.y[0,:].reshape(1,expdata.y.shape[1])
             y_err = expdata.yerr[0,:].reshape(1,expdata.yerr.shape[1])
-            best_x, best_std, prediction_distribution = nn.predict(y, y_err, scaled_x = False,
+            best_x, best_std, prediction_distribution = nn.predict(y, x_err = y_err, scaled_x = False,
                                             scaled_y = False, return_distribution = True,
                                             num_mc_steps = 100000)
 

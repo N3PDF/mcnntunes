@@ -51,7 +51,7 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def predict(self, x, scaled_x = True, scaled_y = True):
+    def predict(self, x, x_err = None, scaled_x = True, scaled_y = True, return_distribution = False, num_mc_steps = 10000):
         pass
 
 
@@ -103,7 +103,7 @@ class DirectModel(Model):
         # Update READY flag
         self.READY = True
 
-    def predict(self, x, scaled_x = True, scaled_y = True):
+    def predict(self, x, x_err = None, scaled_x = True, scaled_y = True, return_distribution = False, num_mc_steps = 10000):
         """Predicts the y passing the x"""
 
         if not self.READY:
