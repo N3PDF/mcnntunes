@@ -17,7 +17,7 @@ class Report(object):
     def __init__(self, path):
         """"""
         self.env = Environment(
-            loader=PackageLoader('mcnntune', 'templates'),
+            loader=PackageLoader('mcnntunes', 'templates'),
             autoescape=select_autoescape(['html'])
         )
 
