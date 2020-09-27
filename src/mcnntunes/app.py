@@ -294,7 +294,7 @@ class App(object):
                 # For the InverseModel it's only an inference
                 y = benchmark_data.y[index,:].reshape(1,benchmark_data.y.shape[1])
                 y_err = benchmark_data.yerr[index,:].reshape(1,benchmark_data.yerr.shape[1])
-                best_x, best_std = nn.predict(y, y_err, scaled_x = False, scaled_y = False)
+                best_x, best_std = nn.predict(y, x_err = y_err, scaled_x = False, scaled_y = False)
 
             # Get the true parameters
             true_x = benchmark_data.x[index]

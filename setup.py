@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 PACKAGE = "mcnntunes"
 
-# Returns the qibo version
+# Returns the mcnntunes version
 def get_version():
     """ Gets the version from the package's __init__ file
     if there is some problem, let it happily fail """
