@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Generates custom runcards for tunes variations
+Perform MC tunes with Neural Networks.
 """
 import mcnntunes.app as vp
 

@@ -34,7 +34,8 @@ setup(
       url="https://github.com/N3PDF/mcnntunes",
       entry_points = {'console_scripts':
                     ['mcnntemplate = mcnntunes.scripts.mcnntemplate:main',
-                     'mcnntunes = mcnntunes.scripts.mcnntunes:main' ]},
+                     'mcnntunes = mcnntunes.scripts.mcnntunes:main',
+                     'mcnntunes-buildruns = mcnntunes.scripts.mcnntunes_buildruns:main']},
       package_dir = {'': 'src'},
       packages = find_packages('src'),
       package_data = {'':['*.html']
