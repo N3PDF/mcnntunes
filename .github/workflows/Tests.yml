@@ -40,12 +40,17 @@ jobs:
         cd ..
         GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/N3PDF/mcnntunes_data.git
         cd mcnntunes_data
-        git lfs pull -I  theory_input_3params_mpipt0_2.18/expdata/ATLAS_2014_I1300647.yoda
-        git lfs pull -I  theory_input_3params_mpipt0_2.18/training_set/
-        git lfs pull -I  theory_input_3params_mpipt0_2.18/validation_set/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/expdata/ATLAS_2014_I1300647.yoda
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/validation_set/
         rm theory_input_3params_mpipt0_2.18/validation_set/run022{4,5,6,7,8,9}_merged_3params.yoda
         rm theory_input_3params_mpipt0_2.18/validation_set/run023*_merged_3params.yoda
         rm theory_input_3params_mpipt0_2.18/validation_set/run024*_merged_3params.yoda
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set_prof/0000/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set_prof/0001/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set_prof/0002/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set_prof/0003/
+        git lfs pull -I theory_input_3params_mpipt0_2.18/training_set_prof/0004/
     - name: Test with pytest
       run: |
         pytest --cov-report=xml examples
