@@ -135,7 +135,7 @@ class App(object):
             # Save to disk
             benchmark_data.save(self.BENCHMARK_DATA % self.args.output)
 
-        if self.config.model_type == 'DirectModel':
+        if self.config.model_type == 'PerBinModel':
             show('\n- You can now proceed with the {model} mode with bins=[1,%d]' % runs.y.shape[1])
         else:
             show('\n- You can now proceed with the {model} mode')
@@ -267,7 +267,7 @@ class App(object):
                 current_output_path = None
 
             # Get the predicted parameters, discriminating between direct and inverse models
-            if model_type == 'DirectModel':
+            if model_type == 'PerBinModel':
 
                 # Minimizer choice
                 if minimizer_type == 'CMAES':
@@ -360,7 +360,7 @@ class App(object):
         nn.search_and_load_model(f'{self.args.output}/{self.config.model_type}')
 
         # Get the predicted parameters, discriminating between direct and inverse models
-        if self.config.model_type == 'DirectModel':
+        if self.config.model_type == 'PerBinModel':
 
             # Minimizer choice
             if self.config.minimizer_type == 'CMAES':
@@ -384,7 +384,7 @@ class App(object):
         info('\n [======= Result Summary =======]')
 
         # print best parameters
-        if self.config.model_type == 'DirectModel':
+        if self.config.model_type == 'PerBinModel':
             if self.config.use_weights:
                 show('\n- Suggested best parameters for (weighted) chi2/dof = %.6f' % chi2)
             else:
@@ -395,7 +395,7 @@ class App(object):
             show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
 
         # print correlation matrix (if using CMA-ES)
-        if self.config.model_type == 'DirectModel' and self.config.minimizer_type == 'CMAES':
+        if self.config.model_type == 'PerBinModel' and self.config.minimizer_type == 'CMAES':
 
             result = m.get_fmin_output()
 
@@ -431,7 +431,7 @@ class App(object):
         display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
 
         # Switch case
-        if display_output['model_type'] == 'DirectModel':
+        if display_output['model_type'] == 'PerBinModel':
 
             display_output['minimizer_type'] = self.config.minimizer_type
 

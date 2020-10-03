@@ -3,7 +3,7 @@
 {% block body %}
 <h1 class="page-title">Data/Model</h1>
 <div class="markdown-body">
-    {% if model_type is eq('DirectModel') %}
+    {% if model_type is eq('PerBinModel') %}
     <figure>
         {% for n in range(data_hists) %}
         <img src="plots/{{n}}_data.svg" alt="data">

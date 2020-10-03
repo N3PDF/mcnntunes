@@ -18,13 +18,13 @@ class Config(object):
         input:
             folders: folders containing the MC runs;
             patterns: list of patterns to look for in the MC runs histograms paths;
-            unpatters: list of patterns to exclude during the runs loading;
+            unpatters: list of patterns to exclude;
             expfiles: list of files with the reference data;
             benchmark_folders: folders containing the MC runs used as benchmark for the tuning procedure;
             weightrules: a list of weight modifiers (optional)
                 - pattern: it selects the histograms with that pattern in the path
                   condition: see below
-                  weight: the weight
+                  weight: the weight (only 0 or 1 for the InverseModel)
                 - ...
 
     The condition subkey accept only:
@@ -33,7 +33,7 @@ class Config(object):
        It's also possible to use '+inf' or '-inf' instead a real numbers.
 
         model:
-            model_type: 'DirectModel' or 'InverseModel'
+            model_type: 'PerBinModel' or 'InverseModel'
             seed:
             noscan_setup:
                 architecture: (optional, default [5, 5])
@@ -44,12 +44,13 @@ class Config(object):
                 epochs: (optional, default 5000)
                 batch_size: (optional, default 16)
                 data_augmentation: (optional, default False, only for 'InverseModel')
-                param_estimator:(optional, only for 'InverseModel', 'SimpleInference', 'Median', 'Mean')
+                param_estimator:(optional, only for 'InverseModel', 'SimpleInference',
+                                    'Median', 'Mean', default 'SimpleInference')
 
-        minimizer: (only for 'DirectModel')
+        minimizer: (only for 'PerBinModel')
             minimizer_type: 'CMAES' or 'GradientMinimizer' (experimental)
-            bounds: (only for CMAES)
-            restarts: (only for CMAES)
+            bounds: boolean, bounds the results to be within the steering ranges (only for CMAES)
+            restarts: number of minimization trials (only for CMAES)
 
         hyperparameter_scan:
             max_evals:
@@ -133,7 +134,7 @@ class Config(object):
         self.noscan_setup = self.get('model', 'noscan_setup')
 
         # Minimizer subsection
-        if self.model_type == 'DirectModel':
+        if self.model_type == 'PerBinModel':
             self.minimizer_type = self.get('minimizer', 'type')
             if self.minimizer_type == 'CMAES':
                 self.bounds = self.get('minimizer','bounds')

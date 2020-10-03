@@ -27,7 +27,7 @@
         </tbody>
     </table>
 
-    {% if model_type is eq('DirectModel') %}
+    {% if model_type is eq('PerBinModel') %}
     {% if minimizer_type is eq('CMAES') %}
     <h2>Correlation matrix</h2>
     <figure>
@@ -42,7 +42,7 @@
         <thead>
         <tr>
             <th scope="col">Item</th>
-            {% if model_type is eq('DirectModel') %}
+            {% if model_type is eq('PerBinModel') %}
             <th scope="col">Model</th>
             {% endif %}
             <th scope="col">Min. MC runs</th>
@@ -53,7 +53,7 @@
         {% for row in summary %}
         <tr>
             <td>{{row.name}}</td>
-            {% if model_type is eq('DirectModel') %}
+            {% if model_type is eq('PerBinModel') %}
             <td>{{row.model}}</td>
             {% endif %}
             <td>{{row.min}}</td>
