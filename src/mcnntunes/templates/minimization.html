@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block nav_minimization %}selected{% endblock %}
+{% block body %}
+<h1 class="page-title">Minimization</h1>
+<div class="markdown-body">
+
+    {% if model_type is eq('PerBinModel') %}
+
+        {% if weighted_chi2 is defined %}
+            <p>Final (weighted) chi2/dof: {{weighted_chi2}} (dof={{weighted_dof}})<br>
+            Final chi2/dof: {{unweighted_chi2}} (dof={{dof}})</p>
+        {% else %}
+            <p>Final chi2/dof: {{unweighted_chi2}} (dof={{dof}})</p>
+        {% endif %}
+
+    <h2>Profiles</h2>
+
+        <div>
+            <figure>
+                {% for param in results %}
+                <img src="plots/chi2_{{loop.index-1}}.svg" alt="profile">
+                {% endfor %}
+            </figure>
+        </div>
+
+        {% if minimizer_type is eq('CMAES') %}
+
+            <h2>CMAES logger</h2>
+
+            <figure>
+                <img src="plots/minimizer.svg" alt="cmaes logger">
+            </figure>
+
+        {% endif %}
+
+    {% else %}
+
+    <p>The current model ({{model_type}}) doesn't need a minimization.</p>
+
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block nav_model %}selected{% endblock %}
+{% block body %}
+<div class="markdown-body">
+
+    {% if model_type is eq('PerBinModel') %}
+    
+    <h2>Model vs MC runs uncertainties</h2>
+    <figure>
+        <img src="plots/errors.svg" alt="errors">
+    </figure>
+
+    <h2>Model loss (scaled loss)</h2>
+    <p>Final average loss function: {{avg_loss}}</p>
+    <figure>
+        <img src="plots/model_loss.svg" alt="model loss">
+    </figure>
+
+    <h2>Model loss per parameter (scaled loss)</h2>
+    <div>
+        <figure>
+            {% for param in results %}
+            <img src="plots/bounds_{{loop.index-1}}.svg" alt="bounds">
+            {% endfor %}
+        </figure>
+    </div>
+
+    {% else %}
+
+    <h2>Spread of the predictions</h2>
+    <figure>
+        <img src="plots/prediction_spread.svg" alt="prediction spread">
+    </figure>
+
+    {% endif %}
+
+</div>
+{% endblock %}

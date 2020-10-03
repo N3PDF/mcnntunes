@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block nav_index %}selected{% endblock %}
+{% block body %}
+<h1 class="page-title">Tune summary</h1>
+<div class="markdown-body">
+
+    <p>Find in the table the best proposed parameters for the current data:</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Parameter</th>
+            <th scope="col">Value</th>
+            <th scope="col">Error</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for param in results %}
+        <tr>
+            <td>{{loop.index}}</td>
+            <td>{{param.name}}</td>
+            <td>{{param.x}}</td>
+            <td>{{param.std}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if model_type is eq('PerBinModel') %}
+    {% if minimizer_type is eq('CMAES') %}
+    <h2>Correlation matrix</h2>
+    <figure>
+        <img src="plots/correlations.svg" alt="correlations">
+    </figure>
+    {% endif %}
+    {% endif %}
+
+    <h2>Model estimators</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">Item</th>
+            {% if model_type is eq('PerBinModel') %}
+            <th scope="col">Model</th>
+            {% endif %}
+            <th scope="col">Min. MC runs</th>
+            <th scope="col">Avg. MC runs</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in summary %}
+        <tr>
+            <td>{{row.name}}</td>
+            {% if model_type is eq('PerBinModel') %}
+            <td>{{row.model}}</td>
+            {% endif %}
+            <td>{{row.min}}</td>
+            <td>{{row.mean}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
