@@ -55,20 +55,20 @@ class Model(ABC):
         pass
 
 
-class DirectModel(Model):
+class PerBinModel(Model):
     """This model predicts the MC run output giving the input parameters."""
 
     def __init__(self, runs, seed = 0):
         """Set data attributes"""
         Model.__init__(self, runs, seed = 0)
-        self.model_type = 'DirectModel'
+        self.model_type = 'PerBinModel'
 
     def build_and_train_model(self, setup):
         """Build and train n_bins FullyConnected models"""
 
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
-            nn = PerBinModel(self.seed)
+            nn = SingleBinModel(self.seed)
             show(f'\n- Fitting bin {bin}')
             nn.fit(self.runs.x_scaled, self.runs.y_scaled[:,bin-1], setup)
             self.per_bin_nns.append(nn)
@@ -96,7 +96,7 @@ class DirectModel(Model):
 
         self.per_bin_nns = []
         for bin in range(1, self.runs.y.shape[1]+1):
-            nn = PerBinModel()
+            nn = SingleBinModel()
             nn.model, nn.fixed_setup, nn.loss = load(f'{input_path}/model_bin_{bin}/model.h5')
             self.per_bin_nns.append(nn)
 
@@ -120,7 +120,7 @@ class DirectModel(Model):
         return prediction
 
 
-class PerBinModel(object):
+class SingleBinModel(object):
 
     def __init__(self, seed = 0):
         """Allocate random seed"""
@@ -303,8 +303,8 @@ class InverseModel(Model):
 
 def get_model(model_type, runs, seed = 0):
     """Return a Model object, discriminating between different model type"""
-    if model_type == 'DirectModel':
-        return DirectModel(runs, seed)
+    if model_type == 'PerBinModel':
+        return PerBinModel(runs, seed)
     elif model_type == 'InverseModel':
         return InverseModel(runs, seed)
     else:

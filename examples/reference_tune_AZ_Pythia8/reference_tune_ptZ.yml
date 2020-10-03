@@ -27,7 +27,7 @@ input:
 
 #############################
 model:
-  type: 'DirectModel'
+  type: 'PerBinModel'
   seed: 0
 
   noscan_setup:
