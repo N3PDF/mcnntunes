@@ -1,6 +1,0 @@
-
--Add list of refdata files and implement list of patterns and unpatterns  to match data (e.g. to exclude muons)
--Add possibility to weight each bin differently. 
--Run Pythia8 to get alternative theory input
--Interface to rivet to do the final plotting of the optimized model against refdata
--Check goodness by rerunning MC with optimized values of parameters
