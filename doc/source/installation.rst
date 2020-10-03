@@ -62,6 +62,6 @@ The `YODA library <https://yoda.hepforge.org/>`_ is not available from PyPI and 
 	make
 	make install
 
-where ``$PREFIX$`` is the installation path. If not specified, the default prefix is ``/usr/local/``. If you use a Conda package manager, you may be interested in using ``PREFIX=$CONDA_PREFIX``. Make sure to set up your environment properly so that the Python interpreter is able to import YODA.
+where ``$PREFIX`` is the installation path. If not specified, the default prefix is ``/usr/local/``. If you use a Conda package manager, you may be interested in using ``PREFIX=$CONDA_PREFIX``. Make sure to set up your environment properly so that the Python interpreter is able to import YODA.
 
 In order to use the hyperparameter tuning procedure with a parallel search, you also need to install `MongoDB <https://www.mongodb.com/>`_.

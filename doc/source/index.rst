@@ -19,6 +19,3 @@ MCNNTUNES reference version: |release|
    basic_work_cycle
    advanced_usage
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
