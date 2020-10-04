@@ -2,13 +2,15 @@
 
 ![Tests](https://github.com/scarrazza/mcnntune/workflows/Tests/badge.svg)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4065208.svg)](https://doi.org/10.5281/zenodo.4065208)
+[![Documentation Status](https://readthedocs.org/projects/mcnntunes/badge/?version=latest)](https://mcnntunes.readthedocs.io/en/latest/?badge=latest)
 
 ## Documentation
 
 MCNNTUNES documentation is available at [mcnntunes.readthedocs.io](https://mcnntunes.readthedocs.io).
 
-- [Installation](https://mcnntunes.readthedocs.io/en/stable/installation.html)
-- [Documentation](https://mcnntunes.readthedocs.io/)
+- [Installation](https://mcnntunes.readthedocs.io/en/latest/installation.html)
+- [Basic work cycle](https://mcnntunes.readthedocs.io/en/latest/basic_work_cycle.html)
+- [Advanced usage](https://mcnntunes.readthedocs.io/en/latest/advanced_usage.html)
 
 ## Citation policy
 
