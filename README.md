@@ -14,4 +14,4 @@ MCNNTUNES documentation is available at [mcnntunes.readthedocs.io](https://mcnnt
 
 If you use the package please cite the following references:
 - https://arxiv.org/abs/20xx.xxxxxx
-- https://doi.org/xx.xxxxx/zenodo.xxxx
+- https://doi.org/10.5281/zenodo.4065207
