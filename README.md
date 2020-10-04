@@ -1,7 +1,7 @@
 # MC Neural Network Tunes
 
 ![Tests](https://github.com/scarrazza/mcnntune/workflows/Tests/badge.svg)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4065208.svg)](https://doi.org/10.5281/zenodo.4065208)
 
 ## Documentation
 
