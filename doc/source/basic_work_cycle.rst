@@ -85,6 +85,10 @@ In order to finalize the dataset, run
 
 The script will collect all histograms with a path that include ``INCLUDE_PATTERNS`` but not ``EXCLUDE_PATTERNS``. For example, ``INCLUDE_PATTERS`` may be ``ATLAS_2014_I1300647`` and ``EXCLUDE_PATTERNS`` may be ``RAW``. This step is required to embed the parameters in the yoda file and to convert histograms to scatterplots.
 
+.. topic:: Examples
+
+    Some examples of datasets can be found in the repository `N3PDF/mcnntunes_data <https://github.com/N3PDF/mcnntunes_data>`_. These are the datasets used in this `paper <https://arxiv.org/abs/20xx.xxxxxx>`_. Note that the first step was performed with `Professor <https://professor.hepforge.org/>`_'s ``prof2-scan``, not ``mcnntemplate``, and so the parameter files and the templates for the generator have a slightly different sintax.
+
 .. _configure:
 
 Configure MCNNTUNES
@@ -135,6 +139,10 @@ Two different types of models are implemented. The `Per Bin` model parametrises 
 Models are implemented with `Keras <https://keras.io/>`_, so you can use its activation functions, optimizers and initializers. The other keys under ``model`` are self-explanatory, except for ``param_estimator``: the `Inverse` model computes the tuning errors by generating a distribution of predictions within the experimental errors (see https://arxiv.org/abs/20xx.xxxxxx for more information). You can change the default parameter estimation from a simple inference to the mean or the median of this distribution.
 
 Additional keys are required for more advanced usage, e.g. hyperparameter tuning (see :doc:`advanced usage <advanced_usage>`).
+
+.. topic:: Examples
+
+    Some examples can be found in the folder ``examples`` of the main repository. They use the datasets in the repository `N3PDF/mcnntunes_data <https://github.com/N3PDF/mcnntunes_data>`_, that must be cloned in the same directory of `N3PDF/mcnntunes <https://github.com/N3PDF/mcnntunes>`_ (not in the root directoy of the repository, but one level higher). Note that those examples are tweaked to be light, expecially if you remove most of the runs in the validation set, but the results will be poor. They also contain keys needed for more :doc:`advanced usage <advanced_usage>`.
 
 .. _execute:
 
