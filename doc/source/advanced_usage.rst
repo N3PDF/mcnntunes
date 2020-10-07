@@ -29,7 +29,7 @@ Now you have access to a performance assessment procedure based on `closure test
 
     mcnntunes -o output benchmark runcard.yaml
 
-For each run in the benchmark folders, the program will perform the tuning procedure with this run instead of the actual experimental data. Then, the obtained parameters are compared with the exact parameters used for generating the run, and a loss function is computed. For more information about the closure test procedure, see https://arxiv.org/abs/20xx.xxxxxx.
+For each run in the benchmark folders, the program will perform the tuning procedure with this run instead of the actual experimental data. Then, the obtained parameters are compared with the exact parameters used for generating the run, and a loss function is computed. For more information about the closure test procedure, see https://arxiv.org/abs/2010.02213.
 
 .. _hyperparameter-tuning:
 

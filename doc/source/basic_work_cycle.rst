@@ -87,7 +87,7 @@ The script will collect all histograms with a path that include ``INCLUDE_PATTER
 
 .. topic:: Examples
 
-    Some examples of datasets can be found in the repository `N3PDF/mcnntunes_data <https://github.com/N3PDF/mcnntunes_data>`_. These are the datasets used in this `paper <https://arxiv.org/abs/20xx.xxxxxx>`_. Note that the first step was performed with `Professor <https://professor.hepforge.org/>`_'s ``prof2-scan``, not ``mcnntemplate``, and so the parameter files and the templates for the generator have a slightly different sintax.
+    Some examples of datasets can be found in the repository `N3PDF/mcnntunes_data <https://github.com/N3PDF/mcnntunes_data>`_. These are the datasets used in this `paper <https://arxiv.org/abs/2010.02213>`_. Note that the first step was performed with `Professor <https://professor.hepforge.org/>`_'s ``prof2-scan``, not ``mcnntemplate``, and so the parameter files and the templates for the generator have a slightly different sintax.
 
 .. _configure:
 
@@ -134,9 +134,9 @@ Now you need to configure MCNNTUNES. You can use the following template:
         bounds: boolean, bounds the results to be within the steering ranges (only for CMAES)
         restarts: number of minimization trials (only for CMAES)
 
-Two different types of models are implemented. The `Per Bin` model parametrises the generator behaviour with fully-connected neural networks, and then fits the generator output to the experimental data using a minimizer. The `Inverse` model uses fully-connected neural networks, and tries to learn directly the parameter configuration that the generator needs to output a given result. For more information about the models, see https://arxiv.org/abs/20xx.xxxxxx.
+Two different types of models are implemented. The `Per Bin` model parametrises the generator behaviour with fully-connected neural networks, and then fits the generator output to the experimental data using a minimizer. The `Inverse` model uses fully-connected neural networks, and tries to learn directly the parameter configuration that the generator needs to output a given result. For more information about the models, see https://arxiv.org/abs/2010.02213.
 
-Models are implemented with `Keras <https://keras.io/>`_, so you can use its activation functions, optimizers and initializers. The other keys under ``model`` are self-explanatory, except for ``param_estimator``: the `Inverse` model computes the tuning errors by generating a distribution of predictions within the experimental errors (see https://arxiv.org/abs/20xx.xxxxxx for more information). You can change the default parameter estimation from a simple inference to the mean or the median of this distribution.
+Models are implemented with `Keras <https://keras.io/>`_, so you can use its activation functions, optimizers and initializers. The other keys under ``model`` are self-explanatory, except for ``param_estimator``: the `Inverse` model computes the tuning errors by generating a distribution of predictions within the experimental errors (see https://arxiv.org/abs/2010.02213 for more information). You can change the default parameter estimation from a simple inference to the mean or the median of this distribution.
 
 Additional keys are required for more advanced usage, e.g. hyperparameter tuning (see :doc:`advanced usage <advanced_usage>`).
 
