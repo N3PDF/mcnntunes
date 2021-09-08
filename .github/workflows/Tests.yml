@@ -2,7 +2,7 @@
 name: Tests
 on: push
 env:
-  yoda-filename: YODA-1.8.3
+  yoda-filename: YODA-1.9.1
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,10 +28,10 @@ jobs:
         ./configure --prefix=${HOME}/yoda
         make -j2
         make install
-        echo "::add-path::${HOME}/yoda/bin"
-        echo "::set-env name=LD_LIBRARY_PATH::${HOME}/yoda/lib"
-        echo "::set-env name=PKG_CONFIG_PATH::${HOME}/yoda/lib/pkgconfig"
-        echo "::set-env name=PYTHONPATH::${HOME}/yoda/lib/python${{ matrix.python-version }}/site-packages"
+        echo "${HOME}/yoda/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=${HOME}/yoda/lib" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=${HOME}/yoda/lib/pkgconfig" >> $GITHUB_ENV
+        echo "PYTHONPATH=${HOME}/yoda/lib/python${{ matrix.python-version }}/site-packages" >> $GITHUB_ENV
     - name: Install package
       run: |
         pip install .
@@ -56,4 +56,4 @@ jobs:
         pytest --cov-report=xml examples
     - name: Test with pylint
       run: |
-        pylint src -E -d E1123,E1120,E0401,E1101
+        pylint src -E -d E1123,E1120,E0401,E1101,E0611
