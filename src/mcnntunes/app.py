@@ -123,7 +123,7 @@ class App(object):
         expdata.save(self.EXP_DATA % self.args.output)
 
         if runs.y.shape[1] != expdata.y.shape[1]:
-            raise error('Number of output mismatch between MC runs and data.')
+            error('Number of output mismatch between MC runs and data.')
 
         # Prepare benchmark mode
         if self.config.use_benchmark_data:

@@ -56,4 +56,4 @@ jobs:
         pytest --cov-report=xml examples
     - name: Test with pylint
       run: |
-        pylint src -E -d E1123,E1120,E0401,E1101
+        pylint src -E -d E1123,E1120,E0401,E1101,E0611
