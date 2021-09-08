@@ -15,5 +15,5 @@ MCNNTUNES documentation is available at [mcnntunes.readthedocs.io](https://mcnnt
 ## Citation policy
 
 If you use the package please cite the following references:
-- https://doi.org/10.1016/j.cpc.2021.107908
+- https://doi.org/10.1016/j.cpc.2021.107908 (arXiv: [2010.02213](https://arxiv.org/abs/2010.02213))
 - https://doi.org/10.5281/zenodo.4065207
