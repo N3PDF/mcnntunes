@@ -40,6 +40,8 @@ def test_mcnntunes_buildruns():
             assert runA[run].points() == runB[run].points()
             # Remove "Variations" annotation from old data, which is useless
             runB[run].rmAnnotation("Variations")
+            # Remove "ErrorBreakdown" annotation from new data, for backwards compatibility
+            runA[run].rmAnnotation("ErrorBreakdown")
             # Check for equal annotations
             assert runA[run].annotations() == runB[run].annotations() # same key
             for text in runA[run].annotations():
