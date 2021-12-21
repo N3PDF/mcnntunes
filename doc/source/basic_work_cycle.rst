@@ -28,18 +28,18 @@ Once decided which parameters you need to tune, you are required to select a ste
 
 Then, you need to create a runcard for your event generator, and set the value of the parameters above with the placeholder ``{{parameter_name}}``. This is an example using PYTHIA8:
 
-.. code-block::
+.. code-block:: bash
 
     ! runcard_template
     ! settings ...
-    BeamRemnants:primordialKThard = {{intrinsicKT}} 
+    BeamRemnants:primordialKThard = {{intrinsicKT}}
     SpaceShower:alphaSvalue = {{asMZisr}}
     SpaceShower:pT0Ref = {{pT0isr}}
     ! more settings ...
 
 Now you can use
 
-.. code-block::
+.. code-block:: bash
 
     mcnntemplate sampling -n NUM_RUNS -s SEED runcard_template variations.yml
 
@@ -57,7 +57,7 @@ Alternatively, the user can provide some possible values for each parameter and 
 
 Then, running
 
-.. code-block::
+.. code-block:: bash
 
     mcnntemplate combinations runcard_template variations.yml
 
@@ -65,7 +65,7 @@ will compute the 36 possible combinations and fill the runcard_template with the
 
 The output directory will be something like this:
 
-.. code-block::
+.. code-block:: bash
 
     output/0000/params.dat
     output/0000/runcard_template
@@ -74,12 +74,12 @@ The output directory will be something like this:
     ...
     output/NUM_RUNS/params.dat
     output/NUM_RUNS/runcard_template
-    
+
 Each runcard_template will use the parameters written in its params.dat file. Now run the generator (with the analyses that you prefer) for each of the templates and write the resulting result.yoda file in the corresponding folder.
 
 In order to finalize the dataset, run
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes-buildruns -n NUM_RUNS -d output -f result.yoda -p params.dat --patterns INCLUDE_PATTERNS --unpatters EXCLUDE_PATTERNS -o training_set
 
@@ -151,19 +151,19 @@ Execute MCNNTUNES
 
 At first, perform the ``preprocess`` step and check if MCNNTUNES recognise the ``input`` keys successfully:
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes -o output preprocess runcard.yml
 
 Then, perform the ``model`` step and check if MCNNTUNES recognise the ``model`` keys successfully:
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes -o output model runcard.yml
 
 Finally, perform the ``tune`` step and check if MCNNTUNES recognise the ``minimizer`` keys successfully:
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes -o output tune runcard.yml
 
