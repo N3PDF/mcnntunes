@@ -25,7 +25,7 @@ If you take a set of run from the training set and move it in a separate folder,
 
 Now you have access to a performance assessment procedure based on `closure tests`:
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes -o output benchmark runcard.yaml
 
@@ -48,7 +48,7 @@ Deep learning algorithms present many hyperparameters that can heavily influence
                 optimizer:
                 epochs:
                 batch_size:
-                # other model settings... 
+                # other model settings...
 
 You need to define the search space under the ``model`` key. It must be defined by means of specific function provided by HyperOpt (see the `official documentation <https://github.com/hyperopt/hyperopt/wiki/FMin>`_). You don't need to use each available key. An example of search space may be:
 
@@ -62,7 +62,7 @@ You need to define the search space under the ``model`` key. It must be defined 
 
 Now you can run the hyperparameter scan with
 
-.. code-block::
+.. code-block:: bash
 
     mcnntunes -o output optimize runcard.yaml
 
@@ -83,7 +83,7 @@ At the end of the optimization procedure, a summary of all evaluations will be p
 
     The program will send some work items to the database and wait for their results. These items corresponds to different trials for the hyperparameter scan. In order to evaluate these items, you need to launch some workers using e.g.
 
-    .. code-block::
+    .. code-block:: bash
 
         hyperopt-mongo-worker --exp-key=EXP_KEY --mongo=<host>[:port]/<db> --workdir=WORK_DIR
 

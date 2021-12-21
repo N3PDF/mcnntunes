@@ -29,20 +29,20 @@ Installing from source
 
 If you prefer to install MCNNTUNES directly from source, clone the repository from GitHub:
 
-.. code-block::
+.. code-block:: bash
 
 	git clone https://github.com/N3PDF/mcnntunes
 	cd mcnntunes
 
 Then, install the requirements:
 
-.. code-block::
+.. code-block:: bash
 
 	pip install -r requirements.txt
 
 The ``pip`` program will take care of all the required dependencies, except for YODA (view :ref:`installing-YODA`). Finally, install MCNNTUNES using ``pip``:
 
-.. code-block::
+.. code-block:: bash
 
 	pip install .
 
@@ -53,7 +53,7 @@ Installing external dependencies
 
 The `YODA library <https://yoda.hepforge.org/>`_ is not available from PyPI and must be installed manually. You can download it from the website and install it following standard GNU procedure, e.g.:
 
-.. code-block::
+.. code-block:: bash
 
 	wget https://yoda.hepforge.org/downloads/?f=YODA-x.y.z.tar.gz -O YODA-x.y.z.tar.gz
 	tar -xf YODA-x.y.z.tar.gz
