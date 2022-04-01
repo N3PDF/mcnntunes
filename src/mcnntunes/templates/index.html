@@ -12,7 +12,8 @@
             <th scope="col">#</th>
             <th scope="col">Parameter</th>
             <th scope="col">Value</th>
-            <th scope="col">Error</th>
+            <th scope="col">Error-</th>
+            <th scope="col">Error+</th>
         </tr>
         </thead>
         <tbody>
@@ -21,7 +22,8 @@
             <td>{{loop.index}}</td>
             <td>{{param.name}}</td>
             <td>{{param.x}}</td>
-            <td>{{param.std}}</td>
+            <td>{{param.std1}}</td>
+            <td>{{param.std2}}</td>
         </tr>
         {% endfor %}
         </tbody>

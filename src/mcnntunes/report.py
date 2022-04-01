@@ -7,17 +7,20 @@ import os, yoda
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import jinja2
 from jinja2 import Environment, PackageLoader, select_autoescape
-from mcnntunes.tools import make_dir, show
-import mcnntunes.stats as stats
+from tools import make_dir, show
+import stats as stats
 
 
 class Report(object):
 
     def __init__(self, path):
         """"""
+        templateLoader = jinja2.FileSystemLoader(searchpath="/home/michael/mcnntunes/src/mcnntunes/templates")
         self.env = Environment(
-            loader=PackageLoader('mcnntunes', 'templates'),
+#            loader=PackageLoader('mcnntunes', 'templates'),
+            loader=templateLoader,
             autoescape=select_autoescape(['html'])
         )
 
@@ -43,11 +46,12 @@ class Report(object):
         plt.savefig(f'{self.path}/plots/minimizer.svg')
         plt.close()
 
-    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs, use_weights=False): # MIKE: removed best_error not used here 
         """"""
         # plot 1d profiles
-        N = 40 # points
-        for dim in range(runs.x_scaled.shape[1]):
+        N = 1000 # points       # MIKE: I add more points
+        BestErrors_ALL=[]
+        for dim in range(runs.x_scaled.shape[1]): 
             d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
             res = np.zeros(N)
             if use_weights: # plot unweighted chi2 for more insight
@@ -60,6 +64,7 @@ class Report(object):
                 if use_weights: # plot unweighted chi2 for more insight
                     unw[i] = minimizer.unweighted_chi2(a)
                 xx[i] = runs.unscale_x(a)[dim]
+            
             plt.figure()
             if not use_weights:
                 plt.plot(xx, res, label='parameter variation', linewidth=2)
@@ -67,8 +72,63 @@ class Report(object):
                 plt.plot(xx, res, label='parameter variation, weighted $\chi^2$/dof', linewidth=2)
                 plt.plot(xx, unw, label='parameter variation, $\chi^2$/dof', linewidth=2)
             plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
-            plt.axvline(best_x_unscaled[dim]+best_error[dim], linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
-            plt.axvline(best_x_unscaled[dim]-best_error[dim], linestyle='--', color='r', linewidth=2)
+                
+            f = np.linspace(min(res)+1, min(res)+1, num=len(xx))
+            plt.plot(xx, f, color='b', linestyle='-')
+            idx = np.argwhere(np.diff(np.sign( res - f))).flatten()         # MIKE: Indexes for the intersections
+            plt.plot(xx[idx], f[idx], 'ro')                                 # MIKE: Plot red dots on the intersections
+            
+            # MIKE: if chi2/dof has a strange form (not 2 point of intersection but 1 or >2) takes only the two point near the value  
+            x_intersections = xx[idx]
+            minor=[]
+            major=[]
+            for inters in x_intersections:
+                if inters <= best_x_unscaled[dim]: 
+                    minor.append(best_x_unscaled[dim]-inters)
+                elif inters > best_x_unscaled[dim]:
+                    major.append(inters-best_x_unscaled[dim])
+            
+            if len(minor)==0:
+                minor.append(0)
+            if len(major)==0:
+                major.append(0)
+            
+            # The best errors for this parameter
+            BestErrors=[min(minor), min(major)]
+            
+#            # MIKE: This is 
+#            errors = xx[idx]
+#            if len(errors)>2:
+#                minor=[]
+#                major=[]
+#                for item in errors:
+#                    if item < best_x_unscaled[dim]:
+#                        minor.append(best_x_unscaled-item)
+#                    if item > best_x_unscaled[dim]:
+#                        major.append(item-best_x_unscaled)
+#                Mybest_errors=[ min(minor), min(major)]
+#            elif len(errors)==1:
+#                if errors[0]>best_x_unscaled[dim]:
+#                    tmp = errors[0]-best_x_unscaled[dim] 
+#                    Mybest_errors= [0, tmp]
+#                elif errors[0]<best_x_unscaled[dim]:
+#                    tmp = best_x_unscaled[dim]-errors[0]
+#                    Mybest_errors= [tmp, 0]
+#            elif len(errors)==0:
+#                Mybest_errors= [0, 0]
+#            elif len(errors)==2 and errors[0]<best_x_unscaled[dim] and errors[1]>best_x_unscaled[dim]:
+#                Mybest_errors=[best_x_unscaled[dim]-errors[0], errors[1]-best_x_unscaled[dim]]
+            
+            BestErrors_ALL.append(BestErrors)
+            k=0
+            for err in BestErrors:
+                if err != 0:
+                    if k==0: 
+                        plt.axvline(best_x_unscaled[dim]-err, linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
+                    if k==1:
+                        plt.axvline(best_x_unscaled[dim]+err, linestyle='--', color='r', linewidth=2)
+                    k=k+1
+            
             plt.legend(loc='best')
             plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
             plt.ylabel('$\chi^2$/dof')
@@ -77,6 +137,8 @@ class Report(object):
             plt.yscale('log')
             plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
             plt.close()
+            
+        return BestErrors_ALL # return all the errors for all the parameters
 
     def plot_model(self, models, runs, data):
         """"""

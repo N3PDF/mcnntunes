@@ -16,15 +16,14 @@ from hyperopt.mongoexp import MongoTrials
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Sequential
-from mcnntunes.runcardio import Config
-from mcnntunes.yodaio import Data
-from mcnntunes.nnmodel import get_model
-from mcnntunes.minimizer import CMAES, GradientMinimizer
-from mcnntunes.report import Report
-from mcnntunes.tools import make_dir, show, info, success, error, log_check
-import mcnntunes.stats as stats
+from runcardio import Config
+from yodaio import Data
+from nnmodel import get_model
+from minimizer import CMAES, GradientMinimizer
+from report import Report
+from tools import make_dir, show, info, success, error, log_check
+import stats as stats
 import mcnntunes
-
 
 class App(object):
 
@@ -422,10 +421,6 @@ class App(object):
         display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0]),
                             'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
 
-        # Add best parameters
-        for i, p in enumerate(runs.params):
-            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
-                                                'std': str('%e') % best_std[i]})
 
         # Retrieve MC runs data
         display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
@@ -455,7 +450,7 @@ class App(object):
 
             # Make all plots needed in the report
             rep.plot_data(expdata, up, runs, best_x, display_output['summary'])
-            rep.plot_minimize(m, best_x, runs.scale_x(best_x), best_std, runs, self.config.use_weights)
+            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights)      # MIKE: I have changed this function. The error is evaluated here!!!
             if display_output['minimizer_type'] == 'CMAES':
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
@@ -465,6 +460,17 @@ class App(object):
             # Plot distribution of prediction if using InverseModel
             rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
                                         [element['name'] for  element in display_output['results']])
+
+        # Add best parameters                   # MIKE: I have changed the table adding the assimetric errors std1 (error-) and std2 (error+)
+        for i, p in enumerate(runs.params):
+            tmp=p.split("_")                    # MIKE: Remove Tune_parameter_ from the name in the index.html page
+            del tmp[0:2]
+            if len(tmp)>1:
+                p='_'.join(tmp)[0]
+            else:
+                p=tmp[0]
+            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
+                                                'std1': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]})   # MIKE: BestError shape (number of tuned parameters, 2)  
 
         with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()

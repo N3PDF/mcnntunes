@@ -12,9 +12,8 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input
-import mcnntunes.stats as stats
-from mcnntunes.tools import show, error, make_dir
-
+import stats as stats
+from tools import show, error, make_dir
 
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""
@@ -24,6 +23,8 @@ class Minimizer(ABC):
         self.model = model
         self.truth = truth.y[truth_index]
         self.truth_error2 = np.square(truth.yerr[truth_index]) + np.square(np.mean(runs.yerr, axis=0))
+        #print(f'self.truth_error2 = {truth.yerr[truth_index]}^2 \n+ \nmedia {runs.yerr.shape} ^2 ')  # MIKE
+        #self.truth_error2 = np.sqrt(self.truth_error2)      # MIKE
         self.runs = runs
         if output is None:
             self.write_on_disk = False
@@ -35,13 +36,18 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight)
+        #print(f'prediction: {prediction}')
+        dof=len(self.runs.y[0])-len(self.runs.params)                                                       # MIKE: calculation of the DoF
+        #print(f'Dof: {dof}')
+        #print(f'self.truth = {self.truth}\nself.truth_error2 = {self.truth_error2}')
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, dof=dof)   # MIKE: dof added
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        return stats.chi2(prediction, self.truth, self.truth_error2)
+        dof=len(self.runs.y[0])-len(self.runs.params)            # MIKE 
+        return stats.chi2(prediction, self.truth, self.truth_error2, dof=dof)    # MIKE added dof 
 
     @abstractmethod
     def minimize(self):
