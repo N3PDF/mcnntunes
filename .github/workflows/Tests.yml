@@ -2,7 +2,7 @@
 name: Tests
 on: push
 env:
-  yoda-filename: YODA-1.9.1
+  yoda-filename: YODA-1.9.4
 jobs:
   build:
     runs-on: ubuntu-latest
