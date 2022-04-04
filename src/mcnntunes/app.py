@@ -417,7 +417,7 @@ class App(object):
         info('\n [======= Building report =======]')
 
         # Start building the report
-        rep = Report(self.args.output)
+        rep = Report(self.args.output)          ### MIKE: The directory plot is generated...
         display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0]),
                             'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
 

@@ -6,14 +6,15 @@ import numpy as np
 import tensorflow as tf
 
 
-def chi2(data_A, data_B, errors2, weights=None, dof=None, nTuningParameters=None):
+def chi2(data_A, data_B, errors2, weights=None, dof=None, nTunedParameters=None):
 
     # Set default value
     if weights is None:
         weights = np.ones(data_A.shape)
-    if dof is None:                                                     # MIKE: I'm not sure but i think we can remove these lines on DoF! 
+    if dof is None:                                                     
         dof = np.sum(weights != 0) # num of non-zero weights
-
+        if nTunedParameters is not None:        # MIKE: the number of  tuned parameters 
+            dof = dof - nTunedParameters        # MIKE: the number of  tuned parameters 
     # Calculate the chi2
     return np.sum(np.square(weights * (data_A - data_B)) / errors2) / dof
 

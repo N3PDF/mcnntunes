@@ -36,18 +36,17 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        #print(f'prediction: {prediction}')
-        dof=len(self.runs.y[0])-len(self.runs.params)                                                       # MIKE: calculation of the DoF
-        #print(f'Dof: {dof}')
-        #print(f'self.truth = {self.truth}\nself.truth_error2 = {self.truth_error2}')
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, dof=dof)   # MIKE: dof added
+        #dof=len(self.runs.y[0])-len(self.runs.params)                                                       # MIKE: calculation of the DoF
+        nTunedParameter=len(self.runs.params)
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, nTunedParameters=nTunedParameter)   # MIKE: nparams ADDED
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        dof=len(self.runs.y[0])-len(self.runs.params)            # MIKE 
-        return stats.chi2(prediction, self.truth, self.truth_error2, dof=dof)    # MIKE added dof 
+        #dof=len(self.runs.y[0])-len(self.runs.params)            # MIKE 
+        nTunedParameter=len(self.runs.params)
+        return stats.chi2(prediction, self.truth, self.truth_error2, nTunedParameters=nTunedParameter)    # MIKE nparams ADDED
 
     @abstractmethod
     def minimize(self):
