@@ -9,7 +9,7 @@ import pickle, h5py
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
-from tools import show, error, make_dir
+from mcnntunes.tools import show, error, make_dir
 
 
 def build_model(input_dim=None, output_dim=1,

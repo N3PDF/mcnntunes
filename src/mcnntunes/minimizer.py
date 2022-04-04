@@ -12,8 +12,8 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Input
-import stats as stats
-from tools import show, error, make_dir
+import mcnntunes.stats as stats
+from mcnntunes.tools import show, error, make_dir
 
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""

@@ -16,13 +16,13 @@ from hyperopt.mongoexp import MongoTrials
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import Sequential
-from runcardio import Config
-from yodaio import Data
-from nnmodel import get_model
-from minimizer import CMAES, GradientMinimizer
-from report import Report
-from tools import make_dir, show, info, success, error, log_check
-import stats as stats
+from mcnntunes.runcardio import Config
+from mcnntunes.yodaio import Data
+from mcnntunes.nnmodel import get_model
+from mcnntunes.minimizer import CMAES, GradientMinimizer
+from mcnntunes.report import Report
+from mcnntunes.tools import make_dir, show, info, success, error, log_check
+import mcnntunes.stats as stats
 import mcnntunes
 
 class App(object):

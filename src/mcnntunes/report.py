@@ -9,18 +9,18 @@ import seaborn as sns
 import pandas as pd
 import jinja2
 from jinja2 import Environment, PackageLoader, select_autoescape
-from tools import make_dir, show
-import stats as stats
+from mcnntunes.tools import make_dir, show
+import mcnntunes.stats as stats
 
 
 class Report(object):
 
     def __init__(self, path):
         """"""
-        templateLoader = jinja2.FileSystemLoader(searchpath="/home/michael/mcnntunes/src/mcnntunes/templates")
+#        templateLoader = jinja2.FileSystemLoader(searchpath="/home/michael/mcnntunes/src/mcnntunes/templates")
         self.env = Environment(
-#            loader=PackageLoader('mcnntunes', 'templates'),
-            loader=templateLoader,
+            loader=PackageLoader('mcnntunes', 'templates'),
+#            loader=templateLoader,
             autoescape=select_autoescape(['html'])
         )
 
