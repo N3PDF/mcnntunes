@@ -418,8 +418,8 @@ class App(object):
 
         # Start building the report
         rep = Report(self.args.output)          ### MIKE: The directory plot is generated...
-        display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0]),
-                            'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
+        display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0])-len(runs.params),
+                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type}   # MIKE: change DoF in report minimization.html
 
 
         # Retrieve MC runs data
