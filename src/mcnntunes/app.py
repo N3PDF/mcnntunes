@@ -450,7 +450,11 @@ class App(object):
 
             # Make all plots needed in the report
             rep.plot_data(expdata, up, runs, best_x, display_output['summary'])
-            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights)      # MIKE: I have changed this function. The error is evaluated here!!!
+            dof=len(expdata.y[0])
+            if runs.y_weight.any() != 1:
+                dof = np.sum(runs.y_weight != 0)
+            dof=dof-len(runs.params)
+            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights, dof=dof)      # MIKE: I have changed this function. The error is evaluated here!!!
             if display_output['minimizer_type'] == 'CMAES':
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
