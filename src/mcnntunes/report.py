@@ -53,12 +53,14 @@ class Report(object):
         BestErrors_ALL=[]
 
         q = 0.682689492137 # MIKE: 1 sigma
-        statistics=scy.chi2(runs.x_scaled.shape[1]) # chi2 sitribution with n dof        
+        #statistics=scy.chi2(runs.x_scaled.shape[1]) # chi2 sitribution with n dof        
+        statistics=scy.chi2(dof)
         valueToAdd=statistics.ppf(q)  # return the x-value containing the percentile q for the statistic chi2
 
         print('Dof == ',dof)
-        valueToPrint=valueToAdd
+        
         valueToAdd=valueToAdd/dof
+        valueToPrint=valueToAdd
 
         for dim in range(runs.x_scaled.shape[1]): 
             d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
@@ -83,7 +85,7 @@ class Report(object):
             plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
                 
             f = np.linspace(min(res)+valueToAdd, min(res)+valueToAdd, num=len(xx))
-            hline_label='$\chi^2$/dof min + {:.2f}/{}'.format(valueToPrint,dof)
+            hline_label='$\chi^2$/dof min + {:.2f}'.format(valueToPrint)
             plt.plot(xx, f, color='g', linestyle='-', label=hline_label)
             idx = np.argwhere(np.diff(np.sign( res - f))).flatten()         # MIKE: Indexes for the intersections
             plt.plot(xx[idx], f[idx], 'ro')                                 # MIKE: Plot red dots on the intersections
