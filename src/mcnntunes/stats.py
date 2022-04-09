@@ -13,8 +13,8 @@ def chi2(data_A, data_B, errors2, weights=None, dof=None, nTunedParameters=None)
         weights = np.ones(data_A.shape)
     if dof is None:                                                     
         dof = np.sum(weights != 0) # num of non-zero weights
-        if nTunedParameters is not None:        # MIKE: the number of  tuned parameters 
-            dof = dof - nTunedParameters        # MIKE: the number of  tuned parameters 
+    if nTunedParameters is not None:        # MIKE: the number of  tuned parameters 
+        dof = dof - nTunedParameters        # MIKE: the number of  tuned parameters 
     # Calculate the chi2
     return np.sum(np.square(weights * (data_A - data_B)) / errors2) / dof
 

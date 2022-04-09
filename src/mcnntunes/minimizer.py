@@ -37,7 +37,15 @@ class Minimizer(ABC):
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
         #dof=len(self.runs.y[0])-len(self.runs.params)                                                       # MIKE: calculation of the DoF
-        nTunedParameter=len(self.runs.params)
+        print(len(self.runs.params))
+        nTunedParameter=0
+        if self.model.moded_type == 'PerBinModel':
+            nTunedParameter=len(self.runs.params)
+        elif self.model.model_type == 'InverseModel':
+            nTunedParameter=0
+
+        #print("nTunedParameter = ", nTunedParameter)
+        #nTunedParameter=None
         return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, nTunedParameters=nTunedParameter)   # MIKE: nparams ADDED
 
     def unweighted_chi2(self, x):
@@ -45,7 +53,14 @@ class Minimizer(ABC):
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
         #dof=len(self.runs.y[0])-len(self.runs.params)            # MIKE 
-        nTunedParameter=len(self.runs.params)
+        print(len(self.runs.params))
+        nTunedParameter=0
+        if self.model.moded_type == 'PerBinModel':
+            nTunedParameter=len(self.runs.params)
+        elif self.model.model_type == 'InverseModel':
+            nTunedParameter=0
+        #print("nTunedParameter = ", nTunedParameter)
+        #nTunedParameter=None
         return stats.chi2(prediction, self.truth, self.truth_error2, nTunedParameters=nTunedParameter)    # MIKE nparams ADDED
 
     @abstractmethod

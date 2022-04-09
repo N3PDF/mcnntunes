@@ -460,21 +460,25 @@ class App(object):
                 rep.plot_correlations(corr)
             display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
 
+            # Add best parameters                   # MIKE: I have changed the table adding the assimetric errors std1 (error-) and std2 (error+)
+            for i, p in enumerate(runs.params):
+                tmp=p.split("_")                    # MIKE: Remove Tune_parameter_ from the name in the index.html page
+                del tmp[0:2]
+                if len(tmp)>1:
+                    p='_'.join(tmp)[0]
+                else:
+                    p=tmp[0]
+                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]})   # MIKE: BestError shape (number of tuned parameters, 2)  
+
         else:
+            for i, p in enumerate(runs.params):
+                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % best_std[i]})
+
             # Plot distribution of prediction if using InverseModel
             rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
                                         [element['name'] for  element in display_output['results']])
 
-        # Add best parameters                   # MIKE: I have changed the table adding the assimetric errors std1 (error-) and std2 (error+)
-        for i, p in enumerate(runs.params):
-            tmp=p.split("_")                    # MIKE: Remove Tune_parameter_ from the name in the index.html page
-            del tmp[0:2]
-            if len(tmp)>1:
-                p='_'.join(tmp)[0]
-            else:
-                p=tmp[0]
-            display_output['results'].append({'name': p, 'x': str('%e') % best_x[i],
-                                                'std1': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]})   # MIKE: BestError shape (number of tuned parameters, 2)  
+        
 
         with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()

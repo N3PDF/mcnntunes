@@ -22,8 +22,10 @@
             <td>{{loop.index}}</td>
             <td>{{param.name}}</td>
             <td>{{param.x}}</td>
-            <td>{{param.std1}}</td>
-            <td>{{param.std2}}</td>
+            <td>{{param.std}}</td>
+            {% if model_type is eq('PerBinModel') %}
+                <td>{{param.std2}}</td>
+            {% endif %}
         </tr>
         {% endfor %}
         </tbody>
