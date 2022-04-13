@@ -131,14 +131,13 @@ class Report(object):
 #                Mybest_errors=[best_x_unscaled[dim]-errors[0], errors[1]-best_x_unscaled[dim]]
             
             BestErrors_ALL.append(BestErrors)
-            k=0
-            for err in BestErrors:
-                if err != 0:
-                    if k==0: 
-                        plt.axvline(best_x_unscaled[dim]-err, linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
-                    if k==1:
+            
+            for k, err in enumerate(BestErrors):        # run on the two errors
+                if err != 0:                            # if error is not 0
+                    if k==0:                            # if error index is "0" 
+                        plt.axvline(best_x_unscaled[dim]-err, linestyle='--', color='r', linewidth=2, label='1-$\sigma$') 
+                    if k==1:                            # if error index is "1" 
                         plt.axvline(best_x_unscaled[dim]+err, linestyle='--', color='r', linewidth=2)
-                    k=k+1
             
             plt.legend(loc='best')
             plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
