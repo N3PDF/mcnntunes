@@ -39,13 +39,13 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, n_params=len(self.runs.params))
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, dof=self.dof)
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        return stats.chi2(prediction, self.truth, self.truth_error2, n_params=len(self.runs.params))
+        return stats.chi2(prediction, self.truth, self.truth_error2, dof=len(prediction) - len(self.runs.params))
 
     @abstractmethod
     def minimize(self):
