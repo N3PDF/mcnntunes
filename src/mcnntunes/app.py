@@ -419,7 +419,7 @@ class App(object):
         # Start building the report
         rep = Report(self.args.output)
         display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0])-len(runs.params),
-                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type} 
+                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type}
 
 
         # Retrieve MC runs data
@@ -477,8 +477,6 @@ class App(object):
             # Plot distribution of prediction if using InverseModel
             rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
                                         [element['name'] for  element in display_output['results']])
-
-        
 
         with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()
