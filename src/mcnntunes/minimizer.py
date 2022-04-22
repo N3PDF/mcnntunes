@@ -32,37 +32,32 @@ class Minimizer(ABC):
             self.write_on_disk = True
             self.output = output
 
+        # Compute degrees of freedom for chi2
+        self.dof = np.sum(self.runs.y_weight) - len(self.runs.params)
+
     def chi2(self, x):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        if self.model.model_type == 'PerBinModel':
-            n_params = len(self.runs.params)
-        elif self.model.model_type == 'InverseModel':
-            n_params = None
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, n_params=n_params)
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, n_params=len(self.runs.params))
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        if self.model.model_type == 'PerBinModel':
-            n_params = len(self.runs.params)
-        elif self.model.model_type == 'InverseModel':
-            n_params = None
-        return stats.chi2(prediction, self.truth, self.truth_error2, n_params=n_params)
+        return stats.chi2(prediction, self.truth, self.truth_error2, n_params=len(self.runs.params))
 
     @abstractmethod
     def minimize(self):
         pass
 
-    def compute_errors(self, best_x_scaled, dof):
+    def compute_errors(self, best_x_scaled):
         """"""
 
         N = 1000 # points
         errors = []
-        best_x_unscaled = self.runs.unscale(best_x_scaled)
-        delta_chi2 = scipy.stats.chi2(dof).ppf(0.682689492137)  / dof
+        best_x_unscaled = self.runs.unscale_x(best_x_scaled)
+        delta_chi2 = scipy.stats.chi2(self.dof).ppf(0.682689492137)  / self.dof
 
         # Iterate over all params
         for axis in range(self.runs.x_scaled.shape[1]):
@@ -137,7 +132,7 @@ class CMAES(Minimizer):
 
         # Unscale best_x and best_std
         best_x = self.runs.unscale_x(self.result[0])
-        best_std = self.result[6] * self.runs.x_std
+        best_std = self.compute_errors(self.result[0])
 
         return best_x, best_std
 
@@ -178,8 +173,9 @@ class GradientMinimizer(Minimizer):
         # Get the best parameters
         for layer in predictor.layers:
             if layer.name == 'parameters_layer':
-                best_x = self.runs.unscale_x(np.array(layer.get_weights()).reshape(-1))
-        best_std = np.ones(best_x.shape) # ISSUE
+                best_x_scaled = np.array(layer.get_weights()).reshape(-1)
+                best_x = self.runs.unscale_x(best_x_scaled)
+        best_std = self.compute_errors(best_x_scaled)
 
         return best_x, best_std
 
