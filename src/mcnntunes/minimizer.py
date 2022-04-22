@@ -23,8 +23,6 @@ class Minimizer(ABC):
         self.model = model
         self.truth = truth.y[truth_index]
         self.truth_error2 = np.square(truth.yerr[truth_index]) + np.square(np.mean(runs.yerr, axis=0))
-        #print(f'self.truth_error2 = {truth.yerr[truth_index]}^2 \n+ \nmedia {runs.yerr.shape} ^2 ')  # MIKE
-        #self.truth_error2 = np.sqrt(self.truth_error2)      # MIKE
         self.runs = runs
         if output is None:
             self.write_on_disk = False
@@ -36,8 +34,6 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        #dof=len(self.runs.y[0])-len(self.runs.params)                                                       # MIKE: calculation of the DoF
-        #print(len(self.runs.params))
         nTunedParameter=0
         okPerBin=None
         if self.model.model_type == 'PerBinModel':
@@ -46,16 +42,12 @@ class Minimizer(ABC):
         elif self.model.model_type == 'InverseModel':
             nTunedParameter=None
 
-        #print("nTunedParameter = ", nTunedParameter)
-        #nTunedParameter=None
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, nTunedParameters=nTunedParameter, okPerBin=okPerBin)   # MIKE: nparams ADDED
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, nTunedParameters=nTunedParameter, okPerBin=okPerBin) 
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        #dof=len(self.runs.y[0])-len(self.runs.params)            # MIKE 
-        #print(len(self.runs.params))
         nTunedParameter=0
         okPerBin=None
         if self.model.moded_type == 'PerBinModel':
@@ -63,9 +55,7 @@ class Minimizer(ABC):
             okPerBin=1
         elif self.model.model_type == 'InverseModel':
             nTunedParameter=None
-        #print("nTunedParameter = ", nTunedParameter)
-        #nTunedParameter=None
-        return stats.chi2(prediction, self.truth, self.truth_error2, nTunedParameters=nTunedParameter, okPerBin=okPerBin)    # MIKE nparams ADDED
+        return stats.chi2(prediction, self.truth, self.truth_error2, nTunedParameters=nTunedParameter, okPerBin=okPerBin) 
 
     @abstractmethod
     def minimize(self):

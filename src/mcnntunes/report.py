@@ -11,7 +11,7 @@ import jinja2
 from jinja2 import Environment, PackageLoader, select_autoescape
 from mcnntunes.tools import make_dir, show
 import mcnntunes.stats as stats
-from scipy import stats as scy      # MIKE: Added this!
+from scipy import stats as scy
 
 
 class Report(object):
@@ -46,18 +46,15 @@ class Report(object):
         plt.savefig(f'{self.path}/plots/minimizer.svg')
         plt.close()
 
-    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs, use_weights=False, dof=None): # MIKE: removed best_error not used here 
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs, use_weights=False, dof=None): 
         """"""
         # plot 1d profiles
-        N = 1000 # points       # MIKE: I add more points
+        N = 1000 # points 
         BestErrors_ALL=[]
 
-        q = 0.682689492137 # MIKE: 1 sigma
-        #statistics=scy.chi2(runs.x_scaled.shape[1]) # chi2 sitribution with n dof        
+        q = 0.682689492137  
         statistics=scy.chi2(dof)
-        valueToAdd=statistics.ppf(q)  # return the x-value containing the percentile q for the statistic chi2
-
-        print('Dof == ',dof)
+        valueToAdd=statistics.ppf(q) 
         
         valueToAdd=valueToAdd/dof
 
@@ -86,10 +83,9 @@ class Report(object):
             f = np.linspace(min(res)+valueToAdd, min(res)+valueToAdd, num=len(xx))
             hline_label='$\chi^2$/dof min + {:.2f}'.format(valueToAdd)
             plt.plot(xx, f, color='g', linestyle='-', label=hline_label)
-            idx = np.argwhere(np.diff(np.sign( res - f))).flatten()         # MIKE: Indexes for the intersections
-            plt.plot(xx[idx], f[idx], 'ro')                                 # MIKE: Plot red dots on the intersections
-            
-            # MIKE: if chi2/dof has a strange form (not 2 point of intersection but 1 or >2) takes only the two point near the value  
+            idx = np.argwhere(np.diff(np.sign( res - f))).flatten()         
+            plt.plot(xx[idx], f[idx], 'ro')  
+             
             x_intersections = xx[idx]
             minor=[]
             major=[]
@@ -107,36 +103,14 @@ class Report(object):
             # The best errors for this parameter
             BestErrors=[min(minor), min(major)]
             
-#            # MIKE: This is 
-#            errors = xx[idx]
-#            if len(errors)>2:
-#                minor=[]
-#                major=[]
-#                for item in errors:
-#                    if item < best_x_unscaled[dim]:
-#                        minor.append(best_x_unscaled-item)
-#                    if item > best_x_unscaled[dim]:
-#                        major.append(item-best_x_unscaled)
-#                Mybest_errors=[ min(minor), min(major)]
-#            elif len(errors)==1:
-#                if errors[0]>best_x_unscaled[dim]:
-#                    tmp = errors[0]-best_x_unscaled[dim] 
-#                    Mybest_errors= [0, tmp]
-#                elif errors[0]<best_x_unscaled[dim]:
-#                    tmp = best_x_unscaled[dim]-errors[0]
-#                    Mybest_errors= [tmp, 0]
-#            elif len(errors)==0:
-#                Mybest_errors= [0, 0]
-#            elif len(errors)==2 and errors[0]<best_x_unscaled[dim] and errors[1]>best_x_unscaled[dim]:
-#                Mybest_errors=[best_x_unscaled[dim]-errors[0], errors[1]-best_x_unscaled[dim]]
             
             BestErrors_ALL.append(BestErrors)
             
-            for k, err in enumerate(BestErrors):        # run on the two errors
-                if err != 0:                            # if error is not 0
-                    if k==0:                            # if error index is "0" 
+            for k, err in enumerate(BestErrors): 
+                if err != 0: 
+                    if k==0:  
                         plt.axvline(best_x_unscaled[dim]-err, linestyle='--', color='r', linewidth=2, label='1-$\sigma$') 
-                    if k==1:                            # if error index is "1" 
+                    if k==1:   
                         plt.axvline(best_x_unscaled[dim]+err, linestyle='--', color='r', linewidth=2)
             
             plt.legend(loc='best')

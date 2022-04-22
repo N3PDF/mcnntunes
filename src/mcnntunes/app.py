@@ -417,9 +417,9 @@ class App(object):
         info('\n [======= Building report =======]')
 
         # Start building the report
-        rep = Report(self.args.output)          ### MIKE: The directory plot is generated...
+        rep = Report(self.args.output)
         display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0])-len(runs.params),
-                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type}   # MIKE: change DoF in report minimization.html
+                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type} 
 
 
         # Retrieve MC runs data
@@ -454,21 +454,21 @@ class App(object):
             if runs.y_weight.any() != 1:
                 dof = np.sum(runs.y_weight != 0)
             dof=dof-len(runs.params)
-            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights, dof=dof)      # MIKE: I have changed this function. The error is evaluated here!!!
+            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights, dof=dof)
             if display_output['minimizer_type'] == 'CMAES':
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
             display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
 
-            # Add best parameters                   # MIKE: I have changed the table adding the assimetric errors std1 (error-) and std2 (error+)
+            # Add best parameters
             for i, p in enumerate(runs.params):
-                tmp=p.split("_")                    # MIKE: Remove Tune_parameter_ from the name in the index.html page
+                tmp=p.split("_")
                 del tmp[0:2]
                 if len(tmp)>1:
                     p='_'.join(tmp)[0]
                 else:
                     p=tmp[0]
-                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]})   # MIKE: BestError shape (number of tuned parameters, 2)  
+                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]}) 
 
         else:
             for i, p in enumerate(runs.params):
