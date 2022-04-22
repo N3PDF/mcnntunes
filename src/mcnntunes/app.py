@@ -25,6 +25,7 @@ from mcnntunes.tools import make_dir, show, info, success, error, log_check
 import mcnntunes.stats as stats
 import mcnntunes
 
+
 class App(object):
 
     RUNS_DATA = '%s/data/runs.p'

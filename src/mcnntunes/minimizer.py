@@ -15,6 +15,7 @@ from tensorflow.keras.layers import Dense, Input
 import mcnntunes.stats as stats
 from mcnntunes.tools import show, error, make_dir
 
+
 class Minimizer(ABC):
     """Abstract class for minimizing the chi2"""
 
@@ -34,28 +35,21 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (weighted, eventually)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        nTunedParameter=0
-        okPerBin=None
         if self.model.model_type == 'PerBinModel':
-            nTunedParameter=len(self.runs.params)
-            okPerBin=1
+            n_params = len(self.runs.params)
         elif self.model.model_type == 'InverseModel':
-            nTunedParameter=None
-
-        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, nTunedParameters=nTunedParameter, okPerBin=okPerBin) 
+            n_params = None
+        return stats.chi2(prediction, self.truth, self.truth_error2, weights=self.runs.y_weight, n_params=n_params)
 
     def unweighted_chi2(self, x):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        nTunedParameter=0
-        okPerBin=None
         if self.model.model_type == 'PerBinModel':
-            nTunedParameter=len(self.runs.params)
-            okPerBin=1
+            n_params = len(self.runs.params)
         elif self.model.model_type == 'InverseModel':
-            nTunedParameter=None
-        return stats.chi2(prediction, self.truth, self.truth_error2, nTunedParameters=nTunedParameter, okPerBin=okPerBin) 
+            n_params = None
+        return stats.chi2(prediction, self.truth, self.truth_error2, n_params=n_params)
 
     @abstractmethod
     def minimize(self):
