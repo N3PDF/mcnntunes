@@ -47,39 +47,39 @@ class Report(object):
         plt.close()
 
     def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
-            """"""
-            # plot 1d profiles
-            N = 40 # points
-            for dim in range(runs.x_scaled.shape[1]):
-                d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
-                res = np.zeros(N)
+        """"""
+        # plot 1d profiles
+        N = 40 # points
+        for dim in range(runs.x_scaled.shape[1]):
+            d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
+            res = np.zeros(N)
+            if use_weights: # plot unweighted chi2 for more insight
+                unw = np.zeros(N)
+            xx = np.zeros(N)
+            for i, p in enumerate(d):
+                a = np.array(best_x_scaled)
+                a[dim] = p
+                res[i] = minimizer.chi2(a)
                 if use_weights: # plot unweighted chi2 for more insight
-                    unw = np.zeros(N)
-                xx = np.zeros(N)
-                for i, p in enumerate(d):
-                    a = np.array(best_x_scaled)
-                    a[dim] = p
-                    res[i] = minimizer.chi2(a)
-                    if use_weights: # plot unweighted chi2 for more insight
-                        unw[i] = minimizer.unweighted_chi2(a)
-                    xx[i] = runs.unscale_x(a)[dim]
-                plt.figure()
-                if not use_weights:
-                    plt.plot(xx, res, label='parameter variation', linewidth=2)
-                else: # plot unweighted chi2 for more insight
-                    plt.plot(xx, res, label='parameter variation, weighted $\chi^2$/dof', linewidth=2)
-                    plt.plot(xx, unw, label='parameter variation, $\chi^2$/dof', linewidth=2)
-                plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
-                plt.axvline(best_x_unscaled[dim]+best_error[dim], linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
-                plt.axvline(best_x_unscaled[dim]-best_error[dim], linestyle='--', color='r', linewidth=2)
-                plt.legend(loc='best')
-                plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
-                plt.ylabel('$\chi^2$/dof')
-                plt.xlabel('parameter')
-                plt.grid()
-                plt.yscale('log')
-                plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
-                plt.close()
+                    unw[i] = minimizer.unweighted_chi2(a)
+                xx[i] = runs.unscale_x(a)[dim]
+            plt.figure()
+            if not use_weights:
+                plt.plot(xx, res, label='parameter variation', linewidth=2)
+            else: # plot unweighted chi2 for more insight
+                plt.plot(xx, res, label='parameter variation, weighted $\chi^2$/dof', linewidth=2)
+                plt.plot(xx, unw, label='parameter variation, $\chi^2$/dof', linewidth=2)
+            plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
+            plt.axvline(best_x_unscaled[dim]+best_error[dim], linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
+            plt.axvline(best_x_unscaled[dim]-best_error[dim], linestyle='--', color='r', linewidth=2)
+            plt.legend(loc='best')
+            plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
+            plt.ylabel('$\chi^2$/dof')
+            plt.xlabel('parameter')
+            plt.grid()
+            plt.yscale('log')
+            plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
+            plt.close()
             
     def plot_model(self, models, runs, data):
         """"""

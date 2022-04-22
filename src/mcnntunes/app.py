@@ -460,7 +460,7 @@ class App(object):
 
             # Make all plots needed in the report
             rep.plot_data(expdata, up, runs, best_x, display_output['summary'])
-            rep.plot_minimize(m, best_x, runs.scale_x(best_x), best_std, runs, self.config.use_weights, dof=dof)
+            rep.plot_minimize(m, best_x, runs.scale_x(best_x), best_std, runs, self.config.use_weights)
             if display_output['minimizer_type'] == 'CMAES':
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
