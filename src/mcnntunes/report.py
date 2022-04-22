@@ -46,84 +46,41 @@ class Report(object):
         plt.savefig(f'{self.path}/plots/minimizer.svg')
         plt.close()
 
-    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, runs, use_weights=False, dof=None): 
-        """"""
-        # plot 1d profiles
-        N = 1000 # points 
-        BestErrors_ALL=[]
-
-        q = 0.682689492137  
-        statistics=scy.chi2(dof)
-        valueToAdd=statistics.ppf(q) 
-        
-        valueToAdd=valueToAdd/dof
-
-        for dim in range(runs.x_scaled.shape[1]): 
-            d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
-            res = np.zeros(N)
-            if use_weights: # plot unweighted chi2 for more insight
-                unw = np.zeros(N)
-            xx = np.zeros(N)
-            for i, p in enumerate(d):
-                a = np.array(best_x_scaled)
-                a[dim] = p
-                res[i] = minimizer.chi2(a)
+    def plot_minimize(self, minimizer, best_x_unscaled, best_x_scaled, best_error, runs, use_weights=False):
+            """"""
+            # plot 1d profiles
+            N = 40 # points
+            for dim in range(runs.x_scaled.shape[1]):
+                d = np.linspace(np.min(runs.x_scaled[:,dim]), np.max(runs.x_scaled[:,dim]), N)
+                res = np.zeros(N)
                 if use_weights: # plot unweighted chi2 for more insight
-                    unw[i] = minimizer.unweighted_chi2(a)
-                xx[i] = runs.unscale_x(a)[dim]
+                    unw = np.zeros(N)
+                xx = np.zeros(N)
+                for i, p in enumerate(d):
+                    a = np.array(best_x_scaled)
+                    a[dim] = p
+                    res[i] = minimizer.chi2(a)
+                    if use_weights: # plot unweighted chi2 for more insight
+                        unw[i] = minimizer.unweighted_chi2(a)
+                    xx[i] = runs.unscale_x(a)[dim]
+                plt.figure()
+                if not use_weights:
+                    plt.plot(xx, res, label='parameter variation', linewidth=2)
+                else: # plot unweighted chi2 for more insight
+                    plt.plot(xx, res, label='parameter variation, weighted $\chi^2$/dof', linewidth=2)
+                    plt.plot(xx, unw, label='parameter variation, $\chi^2$/dof', linewidth=2)
+                plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
+                plt.axvline(best_x_unscaled[dim]+best_error[dim], linestyle='--', color='r', linewidth=2, label='1-$\sigma$')
+                plt.axvline(best_x_unscaled[dim]-best_error[dim], linestyle='--', color='r', linewidth=2)
+                plt.legend(loc='best')
+                plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
+                plt.ylabel('$\chi^2$/dof')
+                plt.xlabel('parameter')
+                plt.grid()
+                plt.yscale('log')
+                plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
+                plt.close()
             
-            plt.figure()
-            if not use_weights:
-                plt.plot(xx, res, label='parameter variation', linewidth=2)
-            else: # plot unweighted chi2 for more insight
-                plt.plot(xx, res, label='parameter variation, weighted $\chi^2$/dof', linewidth=2)
-                plt.plot(xx, unw, label='parameter variation, $\chi^2$/dof', linewidth=2)
-            plt.axvline(best_x_unscaled[dim], color='r', linewidth=2, label='best value')
-                
-            f = np.linspace(min(res)+valueToAdd, min(res)+valueToAdd, num=len(xx))
-            hline_label='$\chi^2$/dof min + {:.2f}'.format(valueToAdd)
-            plt.plot(xx, f, color='g', linestyle='-', label=hline_label)
-            idx = np.argwhere(np.diff(np.sign( res - f))).flatten()         
-            plt.plot(xx[idx], f[idx], 'ro')  
-             
-            x_intersections = xx[idx]
-            minor=[]
-            major=[]
-            for inters in x_intersections:
-                if inters <= best_x_unscaled[dim]: 
-                    minor.append(best_x_unscaled[dim]-inters)
-                elif inters > best_x_unscaled[dim]:
-                    major.append(inters-best_x_unscaled[dim])
-            
-            if len(minor)==0:
-                minor.append(0)
-            if len(major)==0:
-                major.append(0)
-            
-            # The best errors for this parameter
-            BestErrors=[min(minor), min(major)]
-            
-            
-            BestErrors_ALL.append(BestErrors)
-            
-            for k, err in enumerate(BestErrors): 
-                if err != 0: 
-                    if k==0:  
-                        plt.axvline(best_x_unscaled[dim]-err, linestyle='--', color='r', linewidth=2, label='1-$\sigma$') 
-                    if k==1:   
-                        plt.axvline(best_x_unscaled[dim]+err, linestyle='--', color='r', linewidth=2)
-            
-            plt.legend(loc='best')
-            plt.title('1D profiles for parameter %d - %s' % (dim, runs.params[dim]))
-            plt.ylabel('$\chi^2$/dof')
-            plt.xlabel('parameter')
-            plt.grid()
-            plt.yscale('log')
-            plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
-            plt.close()
-            
-        return BestErrors_ALL # return all the errors for all the parameters
-
     def plot_model(self, models, runs, data):
         """"""
         base = plt.cm.get_cmap('viridis')

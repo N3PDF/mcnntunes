@@ -3,6 +3,7 @@
 Performs MC tunes using Neural Networks
 """
 import numpy as np
+import scipy
 import matplotlib
 matplotlib.use('Agg')
 from abc import ABC, abstractmethod
@@ -54,6 +55,46 @@ class Minimizer(ABC):
     @abstractmethod
     def minimize(self):
         pass
+
+    def compute_errors(self, best_x_scaled, dof):
+        """"""
+
+        N = 1000 # points
+        errors = []
+        best_x_unscaled = self.runs.unscale(best_x_scaled)
+        delta_chi2 = scipy.stats.chi2(dof).ppf(0.682689492137)  / dof
+
+        # Iterate over all params
+        for axis in range(self.runs.x_scaled.shape[1]):
+
+            # Scan the x-space and compute the chi2 profile
+            x_scan = np.linspace(np.min(self.runs.x_scaled[:, axis]),
+                                 np.max(self.runs.x_scaled[:, axis]),
+                                 N)
+            chi2_values = np.zeros(N)
+            x_unscaled  = np.zeros(N)
+            for index, param in enumerate(x_scan):
+                a = np.array(best_x_scaled)
+                a[axis] = param
+                chi2_values[index] = self.chi2(a)
+                x_unscaled[index]  = self.runs.unscale_x(a)[axis]
+
+            # Compute where chi2 - min(chi2) ~= delta_chi2
+            intersec_idxs = np.argwhere(np.diff(np.sign(
+                                chi2_values - np.min(chi2_values) - delta_chi2
+                            )))
+
+            # Find the intersection points which are the closest to the minimum
+            x_intersections = x_unscaled[intersec_idxs]
+            lower_values  = [best_x_unscaled[axis]-item for item in x_intersections if item < best_x_unscaled[axis]]
+            higher_values = [item-best_x_unscaled[axis] for item in x_intersections if item > best_x_unscaled[axis]]
+            if len(lower_values)==0:
+                lower_values.append(0.0)
+            if len(higher_values)==0:
+                higher_values.append(0.0)
+            errors.append((min(lower_values), min(higher_values)))
+
+        return errors
 
 class CMAES(Minimizer):
     """Minimize the chi2 using CMA-EvolutionStrategy"""
