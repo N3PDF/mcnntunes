@@ -50,7 +50,7 @@ class Minimizer(ABC):
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
         nTunedParameter=0
         okPerBin=None
-        if self.model.moded_type == 'PerBinModel':
+        if self.model.model_type == 'PerBinModel':
             nTunedParameter=len(self.runs.params)
             okPerBin=1
         elif self.model.model_type == 'InverseModel':
