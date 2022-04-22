@@ -7,7 +7,6 @@ import os, yoda
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import jinja2
 from jinja2 import Environment, PackageLoader, select_autoescape
 from mcnntunes.tools import make_dir, show
 import mcnntunes.stats as stats
@@ -18,7 +17,6 @@ class Report(object):
 
     def __init__(self, path):
         """"""
-
         self.env = Environment(
             loader=PackageLoader('mcnntunes', 'templates'),
             autoescape=select_autoescape(['html'])
@@ -80,7 +78,7 @@ class Report(object):
             plt.yscale('log')
             plt.savefig('%s/plots/chi2_%d.svg' % (self.path, dim))
             plt.close()
-            
+
     def plot_model(self, models, runs, data):
         """"""
         base = plt.cm.get_cmap('viridis')
