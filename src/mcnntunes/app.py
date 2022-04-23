@@ -25,6 +25,7 @@ from mcnntunes.tools import make_dir, show, info, success, error, log_check
 import mcnntunes.stats as stats
 import mcnntunes
 
+
 class App(object):
 
     RUNS_DATA = '%s/data/runs.p'
@@ -388,39 +389,36 @@ class App(object):
                 show('\n- Suggested best parameters for (weighted) chi2/dof = %.6f' % chi2)
             else:
                 show('\n- Suggested best parameters for chi2/dof = %.6f' % chi2)
+            for i, p in enumerate(runs.params):
+                show('  =] %e [- %e, +%e] = %s' % (best_x[i], best_std[i][0], best_std[i][1], p))
         else:
             show('\n- Suggested best parameters:')
-        for i, p in enumerate(runs.params):
-            show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
+            for i, p in enumerate(runs.params):
+                show('  =] (%e +/- %e) = %s' % (best_x[i], best_std[i], p))
 
-        # print correlation matrix (if using CMA-ES)
+        # print correlation matrix (if using PerBinModel + CMA-ES)
         if self.config.model_type == 'PerBinModel' and self.config.minimizer_type == 'CMAES':
-
-            result = m.get_fmin_output()
-
             show('\n- Correlation matrix:')
-            corr = result[-2].sm.correlation_matrix
+            corr = m.get_fmin_output()[-2].sm.correlation_matrix
             for row in corr:
                 show(row)
-
-            # propose eigenvectors
-            cov = np.zeros(shape=(len(corr),len(corr)))
-            for i in range(cov.shape[0]):
-                for j in range(cov.shape[1]):
-                    cov[i,j] = corr[i,j]*best_std[i]*best_std[j]
-            eig, vec = np.linalg.eig(cov)
-            replica = best_x + (eig ** 0.5 * vec).T
-            show('\n- Proposed 1-sigma eigenvector basis (Neig=%d):' % len(replica))
-            for rep in replica:
-                show(rep)
 
         info('\n [======= Building report =======]')
 
         # Start building the report
         rep = Report(self.args.output)
         display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0])-len(runs.params),
-                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type} 
+                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type}
 
+        # Add best parameters
+        for i, p in enumerate(runs.params):
+            param_details = {'name': p, 'x': str('%e') % best_x[i]}
+            if display_output["model_type"] == "PerBinModel":
+                param_details.update({'std':  str('%e') % best_std[i][0],
+                                      'std2': str('%e') % best_std[i][1]})
+            else:
+                param_details.update({'std':  str('%e') % best_std[i]})
+            display_output['results'].append(param_details)
 
         # Retrieve MC runs data
         display_output['summary'] = pickle.load(open('%s/data/summary.p' % self.args.output, 'rb'))
@@ -450,35 +448,16 @@ class App(object):
 
             # Make all plots needed in the report
             rep.plot_data(expdata, up, runs, best_x, display_output['summary'])
-            dof=len(expdata.y[0])
-            if runs.y_weight.any() != 1:
-                dof = np.sum(runs.y_weight != 0)
-            dof=dof-len(runs.params)
-            BestError = rep.plot_minimize(m, best_x, runs.scale_x(best_x), runs, self.config.use_weights, dof=dof)
+            rep.plot_minimize(m, best_x, runs.scale_x(best_x), best_std, runs, self.config.use_weights)
             if display_output['minimizer_type'] == 'CMAES':
                 rep.plot_CMAES_logger(m.get_fmin_output()[-3])
                 rep.plot_correlations(corr)
             display_output['avg_loss'] = rep.plot_model(nn.per_bin_nns, runs, expdata)
 
-            # Add best parameters
-            for i, p in enumerate(runs.params):
-                tmp=p.split("_")
-                del tmp[0:2]
-                if len(tmp)>1:
-                    p='_'.join(tmp)[0]
-                else:
-                    p=tmp[0]
-                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % BestError[i][0],  'std2': str('%e') % BestError[i][1]}) 
-
         else:
-            for i, p in enumerate(runs.params):
-                display_output['results'].append({'name': p, 'x': str('%e') % best_x[i], 'std': str('%e') % best_std[i]})
-
             # Plot distribution of prediction if using InverseModel
             rep.plot_prediction_distribution(best_x, best_std, prediction_distribution,
                                         [element['name'] for  element in display_output['results']])
-
-        
 
         with open('%s/logs/tune.log' % self.args.output, 'r') as f:
             display_output['raw_output'] = f.read()

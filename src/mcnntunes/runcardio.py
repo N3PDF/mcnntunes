@@ -6,6 +6,7 @@ import yaml, glob
 from hyperopt import hp
 from mcnntunes.tools import show, error
 
+
 class ConfigError(ValueError): pass
 
 
