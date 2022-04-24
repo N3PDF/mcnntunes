@@ -84,10 +84,10 @@ class Minimizer(ABC):
             lower_values  = [best_x_unscaled[axis]-item for item in x_intersections if item < best_x_unscaled[axis]]
             higher_values = [item-best_x_unscaled[axis] for item in x_intersections if item > best_x_unscaled[axis]]
             if len(lower_values)==0:
-                lower_values.append(0.0)
+                lower_values.append(np.zeros(1))
             if len(higher_values)==0:
-                higher_values.append(0.0)
-            errors.append((min(lower_values), min(higher_values)))
+                higher_values.append(np.zeros(1))
+            errors.append([min(lower_values), min(higher_values)])
 
         return errors
 

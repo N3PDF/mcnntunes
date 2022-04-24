@@ -3,7 +3,6 @@
 Performs MC tunes using Neural Networks
 """
 
-# ISSUE: Error estimation with GradientMinimizer
 # TODO: Improve the log management with the parallel search
 # TODO: Improve HTML report when using InverseModel
 # TODO: Add more options for the models
@@ -289,6 +288,7 @@ class App(object):
 
                 # Get the predicted parameters
                 best_x, best_std = m.minimize()
+                best_std = np.mean(best_std, axis=1).squeeze() # mean between sx and dx error
 
             else:
                 # For the InverseModel it's only an inference
