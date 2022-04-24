@@ -106,12 +106,13 @@ class Data(object):
         show('\n- Data loaded successfully')
 
         # Calculate dof
-        self.weighted_dof = 0
-        for weight in self.y_weight:
-            if weight != 0:
-                self.weighted_dof += 1
-        if self.weighted_dof == 0: # just in case
-            error('Error: minimizing over 0 bins.')
+        if not expData:
+            self.unweighted_dof = self.y.shape[1] - len(self.params)
+            if self.unweighted_dof <= 0:
+                error(f'Error: invalid dof={self.unweighted_dof}.')
+            self.weighted_dof = np.sum(self.y_weight) - len(self.params)
+            if self.weighted_dof <= 0:
+                error(f'Error: invalid weighted dof={self.weighted_dof}.')
 
         if not expData:
             self.x_mean = np.mean(self.x, axis=0)
