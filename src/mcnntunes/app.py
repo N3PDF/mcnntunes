@@ -407,8 +407,8 @@ class App(object):
 
         # Start building the report
         rep = Report(self.args.output)
-        display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': len(expdata.y[0])-len(runs.params),
-                            'weighted_dof': runs.weighted_dof-len(runs.params), 'model_type': self.config.model_type}
+        display_output = {'results': [], 'version': mcnntunes.__version__, 'dof': runs.unweighted_dof,
+                            'weighted_dof': runs.weighted_dof, 'model_type': self.config.model_type}
 
         # Add best parameters
         for i, p in enumerate(runs.params):

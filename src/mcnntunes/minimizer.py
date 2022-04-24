@@ -33,7 +33,7 @@ class Minimizer(ABC):
             self.output = output
 
         # Compute degrees of freedom for chi2
-        self.dof = np.sum(self.runs.y_weight) - len(self.runs.params)
+        self.dof = self.runs.weighted_dof
 
     def chi2(self, x):
         """Reduced chi2 estimator (weighted, eventually)"""
@@ -45,7 +45,7 @@ class Minimizer(ABC):
         """Reduced chi2 estimator (always unweighted)"""
         x = x.reshape(1,self.runs.x_scaled.shape[1])
         prediction = self.model.predict(x, scaled_x = True, scaled_y = False)
-        return stats.chi2(prediction, self.truth, self.truth_error2, dof=len(prediction) - len(self.runs.params))
+        return stats.chi2(prediction, self.truth, self.truth_error2, dof=self.runs.unweighted_dof)
 
     @abstractmethod
     def minimize(self):
