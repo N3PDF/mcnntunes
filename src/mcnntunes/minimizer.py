@@ -181,4 +181,4 @@ class GradientMinimizer(Minimizer):
 
     def chi2_Keras_loss(self, y_true, y_pred):
         """Custom chi2 loss function ready to be plugged in in Keras"""
-        return stats.chi2_tf(y_true, y_pred, self.truth_error2 / (self.runs.y_std ** 2), weights=self.runs.y_weight)
+        return stats.chi2_tf(y_true, y_pred, self.truth_error2 / (self.runs.y_std ** 2), weights=self.runs.y_weight, dof=self.dof)
