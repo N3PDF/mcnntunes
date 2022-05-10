@@ -12,7 +12,8 @@
             <th scope="col">#</th>
             <th scope="col">Parameter</th>
             <th scope="col">Value</th>
-            <th scope="col">Error</th>
+            <th scope="col">Error{% if model_type is eq('PerBinModel') %}-</th>
+            <th scope="col">Error+{% endif %}</th>
         </tr>
         </thead>
         <tbody>
@@ -22,6 +23,9 @@
             <td>{{param.name}}</td>
             <td>{{param.x}}</td>
             <td>{{param.std}}</td>
+            {% if model_type is eq('PerBinModel') %}
+                <td>{{param.std2}}</td>
+            {% endif %}
         </tr>
         {% endfor %}
         </tbody>
